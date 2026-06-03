@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gurmukhi Transliterate — atTheBunga</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #fef8e8;
+      --bg-alt: #f5f0e4;
+      --border: #d4cdc6;
+      --text-primary: #3d3633;
+      --text-secondary: #5c534d;
+      --text-muted: #7a7069;
+    }
+
+    body {
+      font-family: 'Crimson Pro', Georgia, serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      padding: 0 1.5rem;
+      height: 4rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      text-decoration: none;
+    }
+
+    .header-left img { height: 2.5rem; }
+
+    .header-left span {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    header a.back {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    header a.back:hover { color: var(--text-primary); }
+
+    main {
+      flex: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem;
+      width: 100%;
+    }
+
+    .hero { margin-bottom: 2.5rem; }
+
+    .gurmukhi-title {
+      font-size: 3rem;
+      color: var(--text-primary);
+      line-height: 1.3;
+      margin-bottom: 0.5rem;
+      font-family: 'Crimson Pro', serif;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .input-section { margin-bottom: 2rem; }
+
+    label {
+      display: block;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.5rem;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      font-size: 1.5rem;
+      font-family: 'Crimson Pro', Georgia, serif;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      color: var(--text-primary);
+      resize: vertical;
+      min-height: 80px;
+      outline: none;
+      transition: border-color 0.15s;
+      line-height: 1.5;
+    }
+
+    textarea:focus { border-color: var(--text-primary); }
+    textarea::placeholder { color: var(--border); }
+
+    .results {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    @media (max-width: 480px) { .results { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--bg-alt);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 1rem 1.25rem;
+    }
+
+    .card-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 0.4rem;
+    }
+
+    .card-value {
+      font-size: 1.25rem;
+      color: var(--text-primary);
+      min-height: 1.8rem;
+      word-break: break-word;
+      line-height: 1.5;
+    }
+
+    .card-value.empty {
+      color: var(--border);
+      font-style: italic;
+      font-size: 1rem;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+
+    .section-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1rem;
+    }
+
+    .legacy-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .legacy-row textarea {
+      flex: 1;
+      font-size: 1rem;
+    }
+
+    .arrow {
+      font-size: 1.25rem;
+      color: var(--border);
+      padding-top: 0.75rem;
+      flex-shrink: 0;
+    }
+
+    .legacy-result {
+      flex: 1;
+      background: var(--bg-alt);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.875rem 1rem;
+      font-size: 1.5rem;
+      color: var(--text-primary);
+      min-height: 3.25rem;
+      word-break: break-word;
+    }
+
+    .legacy-result.empty {
+      color: var(--border);
+      font-style: italic;
+      font-size: 1rem;
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      background: var(--bg-alt);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    footer p {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+
+    footer a {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    footer a:hover { color: var(--text-primary); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="https://apps.atthebunga.com" class="header-left">
+      <img src="https://atthebunga.com/logos/atthebunga-logo-3.png" alt="atTheBunga">
+      <span>apps</span>
+    </a>
+    <a href="https://atthebunga.com" class="back">atthebunga.com</a>
+  </header>
+
+  <main>
+    <div class="hero">
+      <p class="gurmukhi-title">ਲਿਪੀਅੰਤਰਣ</p>
+      <h1>Gurmukhi Transliterate</h1>
+      <p class="subtitle">Convert Gurmukhi script to Roman transliteration. Supports ISO 15919 and practical romanization, plus legacy font conversion.</p>
+    </div>
+
+    <div class="input-section">
+      <label for="input">Gurmukhi input</label>
+      <textarea id="input" placeholder="ਸਤਿ ਨਾਮੁ ਕਰਤਾ ਪੁਰਖੁ" autofocus></textarea>
+    </div>
+
+    <div class="results">
+      <div class="card">
+        <div class="card-label">ISO 15919</div>
+        <div class="card-value empty" id="iso">—</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Practical</div>
+        <div class="card-value empty" id="practical">—</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section-label">Legacy font to Unicode</div>
+    <div class="legacy-row">
+      <textarea id="legacy-input" placeholder="AnmolLipi / legacy font text" style="min-height:60px"></textarea>
+      <span class="arrow">→</span>
+      <div class="legacy-result empty" id="legacy-output">—</div>
+    </div>
+  </main>
+
+  <footer>
+    <p>Free tools for Gurmukhi learners</p>
+    <a href="https://apps.atthebunga.com">apps.atthebunga.com</a>
+  </footer>
+
+  <script>
+    const debounce = (fn, ms) => {
+      let t;
+      return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
+    };
+
+    const inputEl = document.getElementById('input');
+    const isoEl = document.getElementById('iso');
+    const practicalEl = document.getElementById('practical');
+    const legacyInputEl = document.getElementById('legacy-input');
+    const legacyOutputEl = document.getElementById('legacy-output');
+
+    const updatePhonetic = debounce(async (text) => {
+      if (!text.trim()) {
+        isoEl.textContent = '—'; isoEl.className = 'card-value empty';
+        practicalEl.textContent = '—'; practicalEl.className = 'card-value empty';
+        return;
+      }
+      const data = await fetch('/api/transliterate?text=' + encodeURIComponent(text)).then(r => r.json());
+      isoEl.textContent = data.iso || '—';
+      isoEl.className = data.iso ? 'card-value' : 'card-value empty';
+      practicalEl.textContent = data.practical || '—';
+      practicalEl.className = data.practical ? 'card-value' : 'card-value empty';
+    }, 80);
+
+    const updateLegacy = debounce(async (text) => {
+      if (!text.trim()) {
+        legacyOutputEl.textContent = '—';
+        legacyOutputEl.className = 'legacy-result empty';
+        return;
+      }
+      const data = await fetch('/api/legacy?text=' + encodeURIComponent(text)).then(r => r.json());
+      legacyOutputEl.textContent = data.unicode || '—';
+      legacyOutputEl.className = data.unicode ? 'legacy-result' : 'legacy-result empty';
+    }, 80);
+
+    inputEl.addEventListener('input', e => updatePhonetic(e.target.value));
+    legacyInputEl.addEventListener('input', e => updateLegacy(e.target.value));
+  </script>
+
+</body>
+</html>
