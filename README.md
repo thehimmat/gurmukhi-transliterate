@@ -6,13 +6,13 @@ romanization, and **legacy** font conversion. A small Python library with a matc
 
 ## What's inside
 
-- `gurmukhi_transliterate/` — the library, with three transliterators:
-  - `GurmukhiISO15919` — standards-compliant academic transliteration
-  - `GurmukhiPractical` — readable, pronunciation-oriented romanization
-  - `GurmukhiLegacy` — converts older ASCII / legacy Gurmukhi font encodings to Unicode
-- `api/` — serverless endpoints (transliterate, compare, identify, legacy) for Vercel
-- `index.html` — a minimal browser demo
-- `tests/` — unit tests for each transliterator
+- `gurmukhi_transliterate/`: the library, with three transliterators:
+  - `GurmukhiISO15919`: standards-compliant academic transliteration
+  - `GurmukhiPractical`: readable, pronunciation-oriented romanization
+  - `GurmukhiLegacy`: converts older ASCII or legacy Gurmukhi font encodings to Unicode
+- `api/`: serverless endpoints (transliterate, compare, identify, legacy) for Vercel
+- `index.html`: a minimal browser demo
+- `tests/`: unit tests for each transliterator
 
 ## Install
 
@@ -33,4 +33,4 @@ pytest
 
 ---
 
-One of a suite of Gurmukhi / Gurbani tools. More at [thehimmat.com](https://thehimmat.com).
+One of a suite of Gurmukhi and Gurbani tools. More at [thehimmat.com](https://thehimmat.com).
