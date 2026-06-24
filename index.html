@@ -95,7 +95,7 @@
       line-height: 1.6;
     }
 
-    .input-section { margin-bottom: 2rem; }
+    .input-section { margin-bottom: 1rem; }
 
     label {
       display: block;
@@ -127,11 +127,26 @@
     textarea:focus { border-color: var(--text-primary); }
     textarea::placeholder { color: var(--border); }
 
+    /* Schwa deletion checkbox */
+    .checkbox-row {
+      display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;
+    }
+    .checkbox-row input[type=checkbox] {
+      width: 15px; height: 15px; cursor: pointer;
+      accent-color: var(--text-secondary);
+    }
+    .checkbox-row label {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.7rem; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      cursor: pointer; user-select: none; margin: 0;
+    }
+
     .results {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 1rem;
-      margin-bottom: 2.5rem;
+      margin-bottom: 1.5rem;
     }
 
     @media (max-width: 480px) { .results { grid-template-columns: 1fr; } }
@@ -167,12 +182,11 @@
       font-size: 1rem;
     }
 
-    .divider {
-      border: none;
-      border-top: 1px solid var(--border);
-      margin: 2rem 0;
+    /* Other systems */
+    .other-header {
+      display: flex; align-items: center; gap: 0.6rem;
+      cursor: pointer; margin-bottom: 0.75rem;
     }
-
     .section-label {
       font-family: 'Inter', sans-serif;
       font-size: 0.7rem;
@@ -180,9 +194,137 @@
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      margin-bottom: 1rem;
+    }
+    .chevron {
+      font-size: 0.55rem; color: var(--border);
+      transition: transform 0.2s; user-select: none;
+    }
+    .chevron.open { transform: rotate(90deg); }
+
+    .other-checkboxes {
+      display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;
+    }
+    .sys-check {
+      display: flex; align-items: center; gap: 0.35rem;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 0.3rem 0.7rem;
+      cursor: pointer; user-select: none;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem; color: var(--text-muted);
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .sys-check:hover { border-color: var(--text-muted); color: var(--text-secondary); }
+    .sys-check.active { border-color: var(--text-secondary); color: var(--text-primary); }
+    .sys-check input { display: none; }
+
+    .other-results {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem; margin-bottom: 0.75rem;
+    }
+    @media (max-width: 480px) { .other-results { grid-template-columns: 1fr; } }
+
+    .compare-btn {
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem; padding: 0.35rem 0.9rem; border-radius: 6px;
+      cursor: pointer; transition: border-color 0.15s, color 0.15s;
+      margin-bottom: 0.5rem;
+    }
+    .compare-btn:hover { border-color: var(--text-muted); color: var(--text-secondary); }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
     }
 
+    /* Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(61,54,51,0.45); z-index: 100;
+      align-items: flex-start; justify-content: center;
+      padding: 2rem;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 0.5rem; width: 100%; max-width: 680px;
+      max-height: 85vh; overflow-y: auto; padding: 1.5rem;
+    }
+    .modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 1rem;
+    }
+    .modal-header h2 {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.7rem; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .modal-close {
+      background: none; border: none; color: var(--text-muted);
+      font-size: 1.1rem; cursor: pointer; padding: 0.2rem 0.5rem;
+      line-height: 1;
+    }
+    .modal-close:hover { color: var(--text-primary); }
+    .compare-table { width: 100%; border-collapse: collapse; }
+    .compare-table th {
+      text-align: left; padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.65rem; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .compare-table td {
+      padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--bg-alt);
+      vertical-align: top;
+    }
+    .compare-table tr:last-child td { border-bottom: none; }
+    .compare-table .sys-name {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem; color: var(--text-muted);
+    }
+    .compare-table .rom-val { font-size: 1.1rem; color: var(--text-primary); }
+
+    /* Identify */
+    .identify-row { display: flex; gap: 0.75rem; align-items: center; }
+    .identify-row input[type=text] {
+      flex: 1; padding: 0.875rem 1rem; font-size: 1rem;
+      font-family: 'Crimson Pro', Georgia, serif;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 0.5rem; color: var(--text-primary);
+      outline: none; transition: border-color 0.15s;
+    }
+    .identify-row input[type=text]:focus { border-color: var(--text-primary); }
+    .identify-row input[type=text]::placeholder { color: var(--border); }
+    .identify-btn {
+      background: var(--bg); border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem; padding: 0.875rem 1rem; border-radius: 0.5rem;
+      cursor: pointer; white-space: nowrap;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .identify-btn:hover { border-color: var(--text-muted); color: var(--text-secondary); }
+    .identify-results { margin-top: 1rem; }
+    .id-row {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.5rem 0; border-bottom: 1px solid var(--bg-alt);
+    }
+    .id-row:last-child { border-bottom: none; }
+    .id-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem; color: var(--text-muted); min-width: 180px;
+    }
+    .id-bar-wrap { flex: 1; height: 3px; background: var(--bg-alt); border-radius: 2px; }
+    .id-bar { height: 3px; background: var(--text-muted); border-radius: 2px; transition: width 0.3s; }
+    .id-score {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.68rem; color: var(--text-muted); min-width: 36px; text-align: right;
+    }
+
+    /* Legacy */
     .legacy-row {
       display: flex;
       align-items: flex-start;
@@ -267,6 +409,11 @@
       <textarea id="input" placeholder="ਸਤਿ ਨਾਮੁ ਕਰਤਾ ਪੁਰਖੁ" autofocus></textarea>
     </div>
 
+    <div class="checkbox-row">
+      <input type="checkbox" id="schwa-toggle">
+      <label for="schwa-toggle">Schwa deletion</label>
+    </div>
+
     <div class="results">
       <div class="card">
         <div class="card-label">ISO 15919</div>
@@ -278,9 +425,31 @@
       </div>
     </div>
 
+    <!-- Other systems -->
+    <div class="other-header" id="other-header">
+      <span class="section-label">Other systems</span>
+      <span class="chevron" id="chevron">&#9658;</span>
+    </div>
+    <div id="other-panel" style="display:none">
+      <div class="other-checkboxes" id="other-checkboxes"></div>
+      <div class="other-results" id="other-results"></div>
+      <button class="compare-btn" id="compare-btn">Compare all systems</button>
+    </div>
+
     <hr class="divider">
 
-    <div class="section-label">Legacy font to Unicode</div>
+    <div class="section-label" style="margin-bottom:1rem">Identify system</div>
+    <div style="margin-bottom:2rem">
+      <div class="identify-row">
+        <input type="text" id="identify-input" placeholder="waheguru / vaahiguroo / ʋaːɦɪɡʊruː …">
+        <button class="identify-btn" id="identify-btn">Which system?</button>
+      </div>
+      <div class="identify-results" id="identify-results"></div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section-label" style="margin-bottom:1rem">Legacy font to Unicode</div>
     <div class="legacy-row">
       <textarea id="legacy-input" placeholder="AnmolLipi / legacy font text" style="min-height:60px"></textarea>
       <span class="arrow">→</span>
@@ -293,44 +462,169 @@
     <a href="https://apps.atthebunga.com">apps.atthebunga.com</a>
   </footer>
 
-  <script>
-    const debounce = (fn, ms) => {
-      let t;
-      return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
-    };
+  <!-- Compare modal -->
+  <div class="modal-overlay" id="compare-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>All systems comparison</h2>
+        <button class="modal-close" id="modal-close">&#x2715;</button>
+      </div>
+      <table class="compare-table">
+        <thead>
+          <tr><th>System</th><th>Romanization</th></tr>
+        </thead>
+        <tbody id="compare-body"></tbody>
+      </table>
+    </div>
+  </div>
 
+  <script>
+    const SYSTEMS = [
+      {id: 'dr_sant_singh', label: 'Dr. Sant Singh Khalsa'},
+      {id: 'dr_thind', label: 'Dr. Kulbir S. Thind'},
+      {id: 'sttm', label: 'SikhiToTheMax'},
+      {id: 'gfs', label: 'Guru Fatha Singh'},
+      {id: 'sacred_nitnem', label: 'Sacred Nitnem'},
+      {id: 'iast', label: 'IAST'},
+      {id: 'ipa', label: 'IPA'},
+    ];
+
+    const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+    const schwaToggle = document.getElementById('schwa-toggle');
     const inputEl = document.getElementById('input');
     const isoEl = document.getElementById('iso');
     const practicalEl = document.getElementById('practical');
-    const legacyInputEl = document.getElementById('legacy-input');
-    const legacyOutputEl = document.getElementById('legacy-output');
 
+    // Other systems panel
+    const otherCheckboxes = document.getElementById('other-checkboxes');
+    const otherResults = document.getElementById('other-results');
+    const otherPanel = document.getElementById('other-panel');
+    const chevron = document.getElementById('chevron');
+    let panelOpen = false;
+
+    document.getElementById('other-header').addEventListener('click', () => {
+      panelOpen = !panelOpen;
+      otherPanel.style.display = panelOpen ? '' : 'none';
+      chevron.classList.toggle('open', panelOpen);
+    });
+
+    const activeSystems = new Set();
+    const otherCards = {};
+
+    SYSTEMS.forEach(sys => {
+      const chip = document.createElement('label');
+      chip.className = 'sys-check';
+      chip.innerHTML = `<input type="checkbox" value="${sys.id}"><span>${sys.label}</span>`;
+      chip.addEventListener('click', () => {
+        const cb = chip.querySelector('input');
+        const willCheck = !cb.checked;
+        if (willCheck) {
+          activeSystems.add(sys.id);
+          chip.classList.add('active');
+          if (!otherCards[sys.id]) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `<div class="card-label">${sys.label}</div>
+                              <div class="card-value empty" id="other-${sys.id}">—</div>`;
+            otherResults.appendChild(card);
+            otherCards[sys.id] = document.getElementById('other-' + sys.id);
+          }
+          otherCards[sys.id].parentElement.style.display = '';
+        } else {
+          activeSystems.delete(sys.id);
+          chip.classList.remove('active');
+          if (otherCards[sys.id]) otherCards[sys.id].parentElement.style.display = 'none';
+        }
+        updateOther(inputEl.value);
+      });
+      otherCheckboxes.appendChild(chip);
+    });
+
+    const updateOther = debounce(async (text) => {
+      for (const sid of activeSystems) {
+        const el = otherCards[sid];
+        if (!el) continue;
+        if (!text.trim()) { el.textContent = '—'; el.className = 'card-value empty'; continue; }
+        const schwa = schwaToggle.checked ? '&schwa=1' : '';
+        const data = await fetch(`/api/other?text=${encodeURIComponent(text)}&system=${sid}${schwa}`).then(r => r.json());
+        el.textContent = data.result || '—';
+        el.className = data.result ? 'card-value' : 'card-value empty';
+      }
+    }, 80);
+
+    // Main transliterate
     const updatePhonetic = debounce(async (text) => {
       if (!text.trim()) {
         isoEl.textContent = '—'; isoEl.className = 'card-value empty';
         practicalEl.textContent = '—'; practicalEl.className = 'card-value empty';
+        updateOther('');
         return;
       }
-      const data = await fetch('/api/transliterate?text=' + encodeURIComponent(text)).then(r => r.json());
+      const schwa = schwaToggle.checked ? '&schwa=1' : '';
+      const data = await fetch('/api/transliterate?text=' + encodeURIComponent(text) + schwa).then(r => r.json());
       isoEl.textContent = data.iso || '—';
       isoEl.className = data.iso ? 'card-value' : 'card-value empty';
       practicalEl.textContent = data.practical || '—';
       practicalEl.className = data.practical ? 'card-value' : 'card-value empty';
+      updateOther(text);
     }, 80);
 
+    inputEl.addEventListener('input', e => updatePhonetic(e.target.value));
+    schwaToggle.addEventListener('change', () => updatePhonetic(inputEl.value));
+
+    // Compare modal
+    const compareModal = document.getElementById('compare-modal');
+    const compareBody = document.getElementById('compare-body');
+    document.getElementById('modal-close').addEventListener('click', () => compareModal.classList.remove('open'));
+    compareModal.addEventListener('click', e => { if (e.target === compareModal) compareModal.classList.remove('open'); });
+
+    document.getElementById('compare-btn').addEventListener('click', async () => {
+      const text = inputEl.value.trim();
+      if (!text) return;
+      const schwa = schwaToggle.checked ? '&schwa=1' : '';
+      const data = await fetch('/api/compare?text=' + encodeURIComponent(text) + schwa).then(r => r.json());
+      const labels = { iso15919: 'ISO 15919', practical: 'Practical' };
+      SYSTEMS.forEach(s => { labels[s.id] = s.label; });
+      compareBody.innerHTML = Object.entries(data)
+        .map(([sid, val]) =>
+          `<tr><td class="sys-name">${labels[sid] || sid}</td><td class="rom-val">${val}</td></tr>`
+        ).join('');
+      compareModal.classList.add('open');
+    });
+
+    // Legacy
+    const legacyInputEl = document.getElementById('legacy-input');
+    const legacyOutputEl = document.getElementById('legacy-output');
     const updateLegacy = debounce(async (text) => {
       if (!text.trim()) {
-        legacyOutputEl.textContent = '—';
-        legacyOutputEl.className = 'legacy-result empty';
-        return;
+        legacyOutputEl.textContent = '—'; legacyOutputEl.className = 'legacy-result empty'; return;
       }
       const data = await fetch('/api/legacy?text=' + encodeURIComponent(text)).then(r => r.json());
       legacyOutputEl.textContent = data.unicode || '—';
       legacyOutputEl.className = data.unicode ? 'legacy-result' : 'legacy-result empty';
     }, 80);
-
-    inputEl.addEventListener('input', e => updatePhonetic(e.target.value));
     legacyInputEl.addEventListener('input', e => updateLegacy(e.target.value));
+
+    // Identify
+    const identifyInput = document.getElementById('identify-input');
+    const identifyBtn = document.getElementById('identify-btn');
+    const identifyResults = document.getElementById('identify-results');
+
+    identifyBtn.addEventListener('click', async () => {
+      const text = identifyInput.value.trim();
+      if (!text) return;
+      const data = await fetch('/api/identify?text=' + encodeURIComponent(text)).then(r => r.json());
+      identifyResults.innerHTML = data.map(r =>
+        `<div class="id-row">
+          <span class="id-label">${r.label}</span>
+          <div class="id-bar-wrap"><div class="id-bar" style="width:${Math.round(r.confidence * 100)}%"></div></div>
+          <span class="id-score">${Math.round(r.confidence * 100)}%</span>
+        </div>`
+      ).join('');
+    });
+
+    identifyInput.addEventListener('keydown', e => { if (e.key === 'Enter') identifyBtn.click(); });
   </script>
 
 </body>
