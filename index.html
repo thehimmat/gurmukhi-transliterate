@@ -127,6 +127,24 @@
     textarea:focus { border-color: var(--text-primary); }
     textarea::placeholder { color: var(--border); }
 
+    /* Keyboard layout switch */
+    .kb-switch {
+      display: flex; align-items: center; gap: 0.75rem;
+      flex-wrap: wrap; margin-bottom: 1rem;
+    }
+    .kb-toggle {
+      display: inline-flex; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--bg-alt); padding: 2px;
+    }
+    .kb-btn {
+      padding: 0.25rem 0.75rem; border-radius: 4px; border: none;
+      font-family: 'Inter', sans-serif; font-size: 0.72rem; font-weight: 500;
+      cursor: pointer; background: none; color: var(--text-muted);
+      transition: background 0.12s, color 0.12s;
+    }
+    .kb-btn.active { background: var(--bg); color: var(--text-primary); box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+    .kb-hint { font-family: 'Inter', sans-serif; font-size: 0.68rem; color: var(--text-muted); font-style: italic; }
+
     /* Schwa deletion checkbox */
     .checkbox-row {
       display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;
@@ -409,6 +427,15 @@
       <textarea id="input" placeholder="ਸਤਿ ਨਾਮੁ ਕਰਤਾ ਪੁਰਖੁ" autofocus></textarea>
     </div>
 
+    <div class="kb-switch">
+      <span class="section-label">Keyboard</span>
+      <div class="kb-toggle">
+        <button class="kb-btn" id="kb-qwerty">Gurmukhi Keyboard</button>
+        <button class="kb-btn" id="kb-igurbani">igurbani</button>
+      </div>
+      <span class="kb-hint" id="kb-hint"></span>
+    </div>
+
     <div class="checkbox-row">
       <input type="checkbox" id="schwa-toggle">
       <label for="schwa-toggle">Schwa deletion</label>
@@ -479,6 +506,137 @@
   </div>
 
   <script>
+    // ── Gurmukhi keyboard input ──────────────────────────────────────────────
+    // Vanilla JS port of @atthebunga/gurmukhi-input@1.2.1 keymaps.
+    // Two layouts: gurmukhi-qwerty (macOS Gurmukhi-QWERTY) and igurbani.
+
+    const GURMUKHI_START = 0x0A00, GURMUKHI_END = 0x0A7F;
+    const isGurmukhiChar = ch => { const cp = ch.codePointAt(0); return cp >= GURMUKHI_START && cp <= GURMUKHI_END; };
+    const isGurmukhiConsonant = ch => /^[ਕ-ਹੜ]$/.test(ch);
+    function lastGurmukhiBase(text) {
+      for (let i = text.length - 1; i >= 0; i--) {
+        const cp = text[i].codePointAt(0);
+        if (cp === 0x0A3C || cp === 0x0A4D || cp === 0x0A70 || cp === 0x0A71) continue;
+        return text[i];
+      }
+      return '';
+    }
+
+    const LAYOUTS = {
+      'gurmukhi-qwerty': {
+        label: 'Gurmukhi Keyboard',
+        hint: 'macOS Gurmukhi - QWERTY (t→ਤ, ⌥t→ਟ)',
+        keys: {
+          'a':'ਾ','e':'ੇ','E':'ੈ','i':'ਿ','I':'ੀ','o':'ੋ','O':'ੌ','u':'ੁ','U':'ੂ',
+          'q':'ੳ','Q':'ੲ','w':'ਅ','W':'ਆ',
+          's':'ਸ','S':'ਸ਼','d':'ਦ','D':'ਧ','f':'੍','F':'਼',
+          'g':'ਗ','G':'ਘ','h':'ਹ','H':'ਃ','z':'ਙ','x':'ੜ',
+          'c':'ਚ','C':'ਛ','v':'ਵ','V':'ੴ','b':'ਬ','B':'ਭ',
+          'r':'ਰ','y':'ਯ','t':'ਤ','T':'ਥ','p':'ਪ','P':'ਫ',
+          'l':'ਲ','L':'ਲ਼','j':'ਜ','J':'ਝ','k':'ਕ','K':'ਖ',
+          'n':'ਨ','N':'ਣ','m':'ਮ','M':'ਂ',']':'ੰ','[':'ੱ','.':'।','`':'ੑ',
+        },
+        option: {
+          'KeyT':'ਟ','KeyD':'ਡ','KeyG':'ਗ਼','KeyJ':'ਜ਼','KeyK':'ਖ਼','KeyP':'ਫ਼',
+          'KeyN':'ਞ','KeyM':'ਁ','KeyA':'ਅ','KeyE':'ਏ','KeyI':'ਇ','KeyO':'ਓ','KeyU':'ਉ',
+        },
+        optionShift: {
+          'KeyT':'ਠ','KeyD':'ਢ','KeyA':'ਆ','KeyE':'ਐ','KeyI':'ਈ','KeyO':'ਔ','KeyU':'ਊ',
+        },
+      },
+      'igurbani': {
+        label: 'igurbani',
+        hint: 'igurbani.com phonetic (t→ਟ, d→ਡ)',
+        keys: {
+          's':'ਸ','S':'ਸ਼','h':'ਹ','k':'ਕ','K':'ਖ','g':'ਗ','G':'ਘ','`':'ਙ',
+          'c':'ਚ','C':'ਛ','j':'ਜ','J':'ਝ','[':'ਞ','t':'ਟ','T':'ਠ',
+          'd':'ਡ','D':'ਢ','N':'ਣ','R':'ੜ','q':'ਤ','Q':'ਥ','z':'ਦ','Z':'ਧ','n':'ਨ',
+          'p':'ਪ','P':'ਫ','f':'ਫ਼','b':'ਬ','B':'ਭ','m':'ਮ',
+          'X':'ਯ','r':'ਰ','l':'ਲ','v':'ਵ','w':'ਵ','L':'ਲ਼',
+          'M':'ਂ','^':'ੰ','W':'ੱ',':':'ਃ','~':'੍',
+        },
+        vowelStandalone: { 'a':'ਅ','A':'ਆ','i':'ਇ','I':'ਈ','u':'ੳ','U':'ਊ','e':'ਏ','E':'ਐ','o':'ਓ','O':'ਔ' },
+        vowelMatra:      { 'a':'ਾ','A':'ਾ','i':'ਿ','I':'ੀ','u':'ੁ','U':'ੂ','e':'ੇ','E':'ੈ','o':'ੋ','O':'ੌ' },
+      },
+    };
+
+    const PASSTHROUGH = new Set([' ','Backspace','Delete','Enter','Tab','Escape',
+      'ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown']);
+
+    function resolveKey(key, textBefore, layout) {
+      if (key in layout.keys) return layout.keys[key];
+      if (layout.vowelStandalone && key in layout.vowelStandalone) {
+        const prev = lastGurmukhiBase(textBefore);
+        return (prev && isGurmukhiConsonant(prev)) ? layout.vowelMatra[key] : layout.vowelStandalone[key];
+      }
+      return null;
+    }
+
+    function insertInto(el, gurmukhi) {
+      const start = el.selectionStart ?? el.value.length;
+      const end   = el.selectionEnd   ?? el.value.length;
+      el.value = el.value.slice(0, start) + gurmukhi + el.value.slice(end);
+      el.selectionStart = el.selectionEnd = start + gurmukhi.length;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    let activeLayout = 'gurmukhi-qwerty';
+
+    function installKeyboard(el) {
+      el.addEventListener('keydown', e => {
+        if (e.key.length !== 1 || PASSTHROUGH.has(e.key)) return;
+        if (isGurmukhiChar(e.key)) return;
+        if (e.metaKey || e.ctrlKey) return;
+        const layout = LAYOUTS[activeLayout];
+        if (e.altKey) {
+          const map = e.shiftKey ? layout.optionShift : layout.option;
+          const g = map?.[e.code];
+          if (g) { e.preventDefault(); insertInto(el, g); }
+          return;
+        }
+        const g = resolveKey(e.key, el.value.slice(0, el.selectionStart ?? el.value.length), layout);
+        if (!g) return;
+        e.preventDefault();
+        insertInto(el, g);
+      });
+      el.addEventListener('paste', e => {
+        const pasted = e.clipboardData.getData('text');
+        if ([...pasted].some(isGurmukhiChar)) return;
+        e.preventDefault();
+        const layout = LAYOUTS[activeLayout];
+        const start = el.selectionStart ?? el.value.length;
+        let before = el.value.slice(0, start);
+        let converted = '';
+        for (const ch of pasted) {
+          const g = resolveKey(ch, before + converted, layout);
+          converted += g ?? ch;
+        }
+        el.value = before + converted + el.value.slice(el.selectionEnd ?? el.value.length);
+        el.selectionStart = el.selectionEnd = start + converted.length;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    }
+
+    // Layout switch UI
+    const KB_STORAGE = 'gurmukhi-input-layout';
+    const kbHint = document.getElementById('kb-hint');
+    const kbBtns = { 'gurmukhi-qwerty': document.getElementById('kb-qwerty'), 'igurbani': document.getElementById('kb-igurbani') };
+
+    function setLayout(id) {
+      activeLayout = id;
+      localStorage.setItem(KB_STORAGE, id);
+      Object.entries(kbBtns).forEach(([k, btn]) => btn.classList.toggle('active', k === id));
+      kbHint.textContent = LAYOUTS[id].hint;
+    }
+
+    Object.entries(kbBtns).forEach(([id, btn]) => btn.addEventListener('click', () => setLayout(id)));
+    const savedLayout = localStorage.getItem(KB_STORAGE);
+    setLayout((savedLayout && LAYOUTS[savedLayout]) ? savedLayout : 'gurmukhi-qwerty');
+
+    // Attach to the main input
+    installKeyboard(document.getElementById('input'));
+    // ── End keyboard ─────────────────────────────────────────────────────────
+
     const SYSTEMS = [
       {id: 'dr_sant_singh', label: 'Dr. Sant Singh Khalsa'},
       {id: 'dr_thind', label: 'Dr. Kulbir S. Thind'},

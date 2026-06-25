@@ -11,6 +11,8 @@ Use cases:
 
 from typing import Dict
 
+from .schwa import compute_deletions
+
 
 class GurmukhiISO15919:
     """Gurmukhi to ISO 15919 transliteration."""
@@ -45,8 +47,8 @@ class GurmukhiISO15919:
         'ਪ': 'p', 'ਫ': 'ph', 'ਬ': 'b', 'ਭ': 'bh', 'ਮ': 'm',
         'ਯ': 'y', 'ਰ': 'r', 'ਲ': 'l', 'ਵ': 'v', 'ੜ': 'ṛ',
         # Persian-influenced letters
-        'ਖ਼': 'k̲h', 'ਗ਼': 'ġh', 'ਜ਼': 'z', 'ਫ਼': 'f',
-        'ਸ਼': 'sh', 'ਲ਼': 'ḷ', 'ਕ਼': 'q',
+        'ਖ਼': 'k̲h', 'ਗ਼': 'ġ', 'ਜ਼': 'z', 'ਫ਼': 'f',
+        'ਸ਼': 'ś', 'ਲ਼': 'ḷ', 'ਕ਼': 'q',
     }
 
     PUNCTUATION: Dict[str, str] = {
@@ -55,17 +57,32 @@ class GurmukhiISO15919:
     }
 
     MODIFIERS: Dict[str, str] = {
-        '੍': '', 'ੰ': 'ṁ', 'ਂ': 'ṃ', 'ੱ': '', '਼': '',
+        '੍': '', 'ੰ': 'ṃ', 'ਂ': 'ṁ', 'ੱ': '', '਼': '',
     }
 
     @staticmethod
-    def to_phonetic(text: str) -> str:
+    def to_phonetic(text: str, delete_schwa: bool = False) -> str:
         """Convert Gurmukhi text to ISO 15919 phonetic representation.
 
-        Nasalization marks:
-        - ੰ (tippi) → ṁ (dot above)
-        - ਂ (bindi) → ṃ (dot below)
+        Args:
+            text:         Gurmukhi Unicode string.
+            delete_schwa: Apply schwa deletion rules (R1 word-final, R2
+                          pre-vocalic, R3 cascade). Produces more natural
+                          romanization. Default False (full scholarly form).
+
+        Nasalization marks (ISO 15919):
+        - ੰ (tippi / anusvara)    → ṃ (dot below)
+        - ਂ (bindi / chandrabindu) → ṁ (dot above)
         """
+        deletions: set[int] = (
+            compute_deletions(
+                text,
+                set(GurmukhiISO15919.CONSONANTS.keys()),
+                set(GurmukhiISO15919.VOWEL_DIACRITICS.keys()),
+            )
+            if delete_schwa
+            else set()
+        )
         result = ''
         i = 0
         while i < len(text):
@@ -104,25 +121,17 @@ class GurmukhiISO15919:
                             result += GurmukhiISO15919.CONSONANTS[doubled_char][0] + GurmukhiISO15919.CONSONANTS[doubled_char]
                         else:
                             result += GurmukhiISO15919.CONSONANTS[doubled_char] + GurmukhiISO15919.CONSONANTS[doubled_char]
+                        doubled_pos = i + 2  # position of the doubled consonant
                         i += 3
                         if text[i] not in GurmukhiISO15919.VOWEL_DIACRITICS:
-                            result += 'a'
+                            if not delete_schwa or doubled_pos not in deletions:
+                                result += 'a'
                         continue
 
             # Handle nasalization
-            if next_char == 'ੰ':  # tippi
+            if next_char == 'ੰ':  # tippi → anusvara ṃ (dot below)
                 if char in GurmukhiISO15919.CONSONANTS:
                     result += GurmukhiISO15919.CONSONANTS[char] + 'a'
-                elif char in GurmukhiISO15919.VOWEL_DIACRITICS:
-                    result += GurmukhiISO15919.VOWEL_DIACRITICS[char]
-                else:
-                    result += GurmukhiISO15919.VOWELS[char]
-                result += "ṁ"
-                i += 2
-                continue
-            elif next_char == 'ਂ':  # bindi
-                if char in GurmukhiISO15919.CONSONANTS:
-                    result += GurmukhiISO15919.CONSONANTS[char]
                 elif char in GurmukhiISO15919.VOWEL_DIACRITICS:
                     result += GurmukhiISO15919.VOWEL_DIACRITICS[char]
                 else:
@@ -130,9 +139,19 @@ class GurmukhiISO15919:
                 result += "ṃ"
                 i += 2
                 continue
+            elif next_char == 'ਂ':  # bindi → chandrabindu ṁ (dot above)
+                if char in GurmukhiISO15919.CONSONANTS:
+                    result += GurmukhiISO15919.CONSONANTS[char]
+                elif char in GurmukhiISO15919.VOWEL_DIACRITICS:
+                    result += GurmukhiISO15919.VOWEL_DIACRITICS[char]
+                else:
+                    result += GurmukhiISO15919.VOWELS[char]
+                result += "ṁ"
+                i += 2
+                continue
 
             # Handle vowel sequences
-            if i > 0 and result[-1] == 'a' and char in GurmukhiISO15919.VOWELS:
+            if result and result[-1] == 'a' and char in GurmukhiISO15919.VOWELS:
                 result += "'" + GurmukhiISO15919.VOWELS[char]
                 i += 1
                 continue
@@ -144,7 +163,8 @@ class GurmukhiISO15919:
                 result += GurmukhiISO15919.CONSONANTS[two_char]
                 after = text[i + 2] if i + 2 < len(text) else None
                 if after not in GurmukhiISO15919.VOWEL_DIACRITICS and after != '੍':
-                    result += 'a'
+                    if not delete_schwa or i not in deletions:
+                        result += 'a'
                 i += 2
                 continue
 
@@ -152,7 +172,8 @@ class GurmukhiISO15919:
             if char in GurmukhiISO15919.CONSONANTS:
                 result += GurmukhiISO15919.CONSONANTS[char]
                 if next_char not in GurmukhiISO15919.VOWEL_DIACRITICS and next_char != '੍':
-                    result += 'a'
+                    if not delete_schwa or i not in deletions:
+                        result += 'a'
             elif char in GurmukhiISO15919.VOWEL_DIACRITICS:
                 result += GurmukhiISO15919.VOWEL_DIACRITICS[char]
             elif char in GurmukhiISO15919.VOWELS:

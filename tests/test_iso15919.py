@@ -6,31 +6,31 @@ t = GurmukhiISO15919.to_phonetic
 
 class TestNasalization:
     def test_tippi_before_consonant(self):
-        assert t('ਹਿੰਮਤ') == 'hiṁmata'
+        assert t('ਹਿੰਮਤ') == 'hiṃmata'
 
     def test_tippi_mid_word(self):
-        assert t('ਸਿੰਘ') == 'siṁgha'
+        assert t('ਸਿੰਘ') == 'siṃgha'
 
     def test_tippi_short_vowel(self):
-        assert t('ਕੰਮ') == 'kaṁma'
+        assert t('ਕੰਮ') == 'kaṃma'
 
     def test_tippi_with_conjunct(self):
-        assert t('ਅੰਮ੍ਰਿਤ') == 'aṁmrita'
+        assert t('ਅੰਮ੍ਰਿਤ') == 'aṃmrita'
 
     def test_bindi_after_long_vowel(self):
-        assert t('ਸਾਂਝਾ') == 'sāṃjhā'
+        assert t('ਸਾਂਝਾ') == 'sāṁjhā'
 
     def test_bindi_word_final(self):
-        assert t('ਨਾਂ') == 'nāṃ'
+        assert t('ਨਾਂ') == 'nāṁ'
 
     def test_bindi_after_diphthong(self):
-        assert t('ਮੈਂ') == 'maiṃ'
+        assert t('ਮੈਂ') == 'maiṁ'
 
     def test_bindi_vowel_sequence(self):
-        assert t('ਸਿਉਂ') == 'siuṃ'
+        assert t('ਸਿਉਂ') == 'siuṁ'
 
     def test_bindi_long_vowel_sequence(self):
-        assert t('ਨਾਉਂ') == 'nāuṃ'
+        assert t('ਨਾਉਂ') == 'nāuṁ'
 
 
 class TestVowelSequences:
@@ -47,7 +47,7 @@ class TestVowelSequences:
         assert t('ਭਾਉ') == 'bhāu'
 
     def test_long_vowel_sequence_with_bindi(self):
-        assert t('ਆਈਆਂ') == 'āīāṃ'
+        assert t('ਆਈਆਂ') == 'āīāṁ'
 
 
 class TestConjuncts:
@@ -102,7 +102,7 @@ class TestConsonants:
         assert t(gurmukhi) == expected
 
     @pytest.mark.parametrize("gurmukhi,expected", [
-        ('ਜ਼', 'za'), ('ਫ਼', 'fa'), ('ਸ਼', 'sha'),
+        ('ਜ਼', 'za'), ('ਫ਼', 'fa'), ('ਸ਼', 'śa'),
     ])
     def test_persian_consonants(self, gurmukhi, expected):
         assert t(gurmukhi) == expected

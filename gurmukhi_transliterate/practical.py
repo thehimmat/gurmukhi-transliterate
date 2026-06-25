@@ -11,6 +11,8 @@ Use cases:
 - Casual transliteration
 """
 
+from .schwa import compute_deletions
+
 
 class GurmukhiPractical:
     SPECIAL_SYMBOLS = {
@@ -59,8 +61,23 @@ class GurmukhiPractical:
     LABIAL_CONSONANTS = {'ਬ', 'ਭ', 'ਪ', 'ਫ', 'ਮ'}
 
     @classmethod
-    def to_practical(cls, text: str) -> str:
-        """Convert Gurmukhi text to practical romanization."""
+    def to_practical(cls, text: str, delete_schwa: bool = False) -> str:
+        """Convert Gurmukhi text to practical romanization.
+
+        Args:
+            text:         Gurmukhi Unicode string.
+            delete_schwa: Apply schwa deletion rules (R1 word-final, R2
+                          pre-vocalic, R3 cascade). Default False.
+        """
+        deletions: set[int] = (
+            compute_deletions(
+                text,
+                set(cls.CONSONANTS.keys()),
+                set(cls.VOWEL_DIACRITICS.keys()),
+            )
+            if delete_schwa
+            else set()
+        )
         result = ""
         i = 0
         while i < len(text):
@@ -119,7 +136,8 @@ class GurmukhiPractical:
                     i += 2
                     continue
                 elif next_char not in ['੍', ' ', '।', '॥']:
-                    result += 'a'
+                    if not delete_schwa or i not in deletions:
+                        result += 'a'
                 i += 1
                 continue
 
