@@ -508,8 +508,8 @@
 
   <script>
     // ── Gurmukhi keyboard input ──────────────────────────────────────────────
-    // Vanilla JS port of @atthebunga/gurmukhi-input@1.2.1 keymaps.
     // Two layouts: gurmukhi-qwerty (macOS Gurmukhi-QWERTY) and igurbani.
+    // Vanilla JS port of @atthebunga/gurmukhi-input v1.3.0 keymaps.
 
     const GURMUKHI_START = 0x0A00, GURMUKHI_END = 0x0A7F;
     const isGurmukhiChar = ch => { const cp = ch.codePointAt(0); return cp >= GURMUKHI_START && cp <= GURMUKHI_END; };
@@ -535,7 +535,8 @@
           'c':'ਚ','C':'ਛ','v':'ਵ','V':'ੴ','b':'ਬ','B':'ਭ',
           'r':'ਰ','y':'ਯ','t':'ਤ','T':'ਥ','p':'ਪ','P':'ਫ',
           'l':'ਲ','L':'ਲ਼','j':'ਜ','J':'ਝ','k':'ਕ','K':'ਖ',
-          'n':'ਨ','N':'ਣ','m':'ਮ','M':'ਂ',']':'ੰ','[':'ੱ','.':'।','`':'ੑ',
+          'n':'ਨ','N':'ਣ','m':'ਮ','M':'ਂ',']':'ੰ','[':'ੱ','.':'।','>':'॥','`':'ੑ','~':'ੵ',
+          '1':'੧','2':'੨','3':'੩','4':'੪','5':'੫','6':'੬','7':'੭','8':'੮','9':'੯','0':'੦',
         },
         option: {
           'KeyT':'ਟ','KeyD':'ਡ','KeyG':'ਗ਼','KeyJ':'ਜ਼','KeyK':'ਖ਼','KeyP':'ਫ਼',
