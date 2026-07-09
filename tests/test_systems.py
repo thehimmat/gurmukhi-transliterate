@@ -132,6 +132,8 @@ class TestBaniDBIPA:
 
 
 class TestGursevak:
+    """Expectations verified against the app's Gursevak.sqlite (v3.01)."""
+
     def test_sihari_is_e(self):
         # ਲਿਖ → lekh + inherent a (sihari → e)
         assert rom('gursevak', 'ਲਿਖ') == 'lekha'
@@ -139,6 +141,28 @@ class TestGursevak:
     def test_tippi_superscript(self):
         # ਸੈਭੰ → saibhaⁿ
         assert rom('gursevak', 'ਸੈਭੰ') == 'saibhaⁿ'
+
+    def test_laavaan_is_ay(self):
+        # DB: ਜੇ → j‹ay›
+        assert rom('gursevak', 'ਜੇ') == 'jay'
+
+    def test_retroflex_series(self):
+        # DB: ਤੋਟਿ → t‹o›tt‹e›, ਠਾਕ → tth‹aa›k, ਢਾਲਿ → ddh‹aa›l‹e›
+        assert rom('gursevak', 'ਤੋਟਿ') == 'totte'
+        assert rom('gursevak', 'ਠਾਕ') == 'tthaaka'
+        assert rom('gursevak', 'ਢਾਲਿ') == 'ddhaale'
+
+    def test_nn_for_nanna(self):
+        # DB: ਜਾਣੈ → j‹aa›nn‹ai›
+        assert rom('gursevak', 'ਜਾਣੈ') == 'jaannai'
+
+    def test_capital_Y(self):
+        # DB: ਯਯਾ → YaY‹aa›
+        assert rom('gursevak', 'ਯਯਾ') == 'YaYaa'
+
+    def test_dental_d_plain(self):
+        # DB: ਦੁਖ → d‹u›kh (d, not dh)
+        assert rom('gursevak', 'ਦੁਖ') == 'dukha'
 
 
 # ---------------------------------------------------------------------------

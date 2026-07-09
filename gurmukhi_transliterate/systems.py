@@ -12,7 +12,8 @@ Gurmukhi source text:
   - sttm_legacy: the old SikhiToTheMax scheme, still used verbatim by
                  igurbani.com (verified against its own database July 2026)
   - banidb_ipa:  BaniDB's IPA transliteration (differs from the academic ipa map)
-  - gursevak:    Learn Shudh Gurbani app romanization (partial; screenshots only)
+  - gursevak:    Learn Shudh Gurbani app romanization (extracted from the
+                 app's bundled SQLite database, v3.01)
 
 Normalisation applied to the raw sheet data:
   - All values lowercased — EXCEPT the BaniDB-derived sttm map, where capital
@@ -378,37 +379,42 @@ GURSEVAK = SystemMap(
     label='Gursevak / Learn Shudh Gurbani',
     consonants={
         'ਸ': 's', 'ਹ': 'h',
-        'ਕ': 'k', 'ਖ': 'kh', 'ਗ': 'g', 'ਘ': None, 'ਙ': None,
-        'ਚ': None, 'ਛ': None, 'ਜ': 'j', 'ਝ': None, 'ਞ': None,
-        'ਟ': None, 'ਠ': None, 'ਡ': 'dd', 'ਢ': None, 'ਣ': None,
-        'ਤ': 't', 'ਥ': None, 'ਦ': 'dh', 'ਧ': None, 'ਨ': 'n',
-        'ਪ': 'p', 'ਫ': None, 'ਬ': 'b', 'ਭ': 'bh', 'ਮ': 'm',
-        'ਯ': None, 'ਰ': 'r', 'ਲ': 'l', 'ਵ': 'v', 'ੜ': None,
-        'ਸ਼': None, 'ਜ਼': None, 'ਗ਼': None, 'ਖ਼': None, 'ਫ਼': None, 'ਲ਼': None,
+        'ਕ': 'k', 'ਖ': 'kh', 'ਗ': 'g', 'ਘ': 'gh', 'ਙ': 'ng',
+        'ਚ': 'ch', 'ਛ': 'chh', 'ਜ': 'j', 'ਝ': 'jh', 'ਞ': 'nj',
+        'ਟ': 'tt', 'ਠ': 'tth', 'ਡ': 'dd', 'ਢ': 'ddh', 'ਣ': 'nn',
+        'ਤ': 't', 'ਥ': 'th', 'ਦ': 'd', 'ਧ': 'dh', 'ਨ': 'n',
+        'ਪ': 'p', 'ਫ': 'ph', 'ਬ': 'b', 'ਭ': 'bh', 'ਮ': 'm',
+        'ਯ': 'Y', 'ਰ': 'r', 'ਲ': 'l', 'ਵ': 'v', 'ੜ': 'rr',
+        # Persian
+        'ਸ਼': 'sh', 'ਜ਼': 'z', 'ਗ਼': 'gh', 'ਖ਼': 'khh', 'ਫ਼': 'ph', 'ਲ਼': None,
     },
     vowel_diacritics={
         'ਾ': 'aa', 'ਿ': 'e', 'ੀ': 'ee',
-        'ੁ': 'u', 'ੂ': 'oo', 'ੇ': None, 'ੈ': 'ai',
-        'ੋ': 'o', 'ੌ': None,
+        'ੁ': 'u', 'ੂ': 'oo', 'ੇ': 'ay', 'ੈ': 'ai',
+        'ੋ': 'o', 'ੌ': 'au',
     },
     vowels={
-        'ਅ': 'a', 'ਆ': 'aa', 'ਇ': 'e', 'ਈ': None,
-        'ਉ': 'ou', 'ਊ': None, 'ਏ': None, 'ਐ': None,
-        'ਓ': None, 'ਔ': None,
+        # Independent ਅ is capital A in the source (ਅੰਦਰਿ → Aⁿdare); stored
+        # lowercase because the engine reuses this value as the inherent vowel
+        'ਅ': 'a', 'ਆ': 'aa', 'ਇ': 'e', 'ਈ': 'ee',
+        'ਉ': 'u', 'ਊ': 'oo', 'ਏ': 'ay', 'ਐ': 'ai',
+        'ਓ': 'o', 'ਔ': 'au',
     },
     nasal_tippi='ⁿ',
     nasal_bindi='ⁿ',
-    subjoined={'੍ਰ': 'r', '੍ਵ': None, '੍ਹ': None, '੍ਤ': None, '੍ਯ': None},
+    subjoined={'੍ਰ': 'ᵣ', '੍ਵ': 'ᵤ', '੍ਹ': 'ₕ', '੍ਤ': 'ₜ', '੍ਯ': 'ₑ'},
     notes=(
-        'PARTIAL map — evidence is limited to Learn Shudh Gurbani app '
-        'screenshots (July 2026); gursevak.com/readgurbani.com serve no '
-        'romanization. None = unattested, not unsupported. '
-        'Pronunciation-first scheme: sihari → e (ਲਿਖਿ → lekhe, ਸਤਿਨਾਮੁ → '
-        'satenaamu), silent final sihari dropped (ਮੂਰਤਿ → moorat), pronounced '
-        'final aunkar kept (-u), schwa inserted per recitation (ਗੁਰਪ੍ਰਸਾਦਿ → '
-        'guraprasaadh), superscript ⁿ for tippi (ਸੈਭੰ → saibhaⁿ). App also '
-        'colour-codes vowels and marks vishrams with punctuation. Full '
-        'ingestion needs the app\'s data (APK extraction).'
+        'Learn Shudh Gurbani app scheme, extracted from the bundled '
+        'Gursevak.sqlite of app v3.01 (June 2026): ~143k verses across SGGS, '
+        'Dasam Granth, Sarbloh, Bhai Gurdas, Bhai Nandlal, Rehatnamey, '
+        'word-aligned. Pronunciation-first: sihari → e and laavaan → ay '
+        '(ਜੇ → jay, ਏਕੁ → ayku), superscript ⁿ nasals, subjoined letters as '
+        'Unicode subscripts (ਅੰਮ੍ਰਿਤ → Aⁿmᵣet, ਸ੍ਵਾਦ → sᵤaad, ਪੜ੍ਹਹਿ → '
+        'parrₕahe), ਯ → capital Y (ਯਯਾ → YaYaa), addak capitalises the next '
+        'consonant (ਚੱਕ੍ਰ → chaKᵣa) — engine doubles instead. The source '
+        'wraps vowels in ‹› for the app\'s colour-coding (stripped here) and '
+        'hyphenates adjacent vowels (ਚਲਾਏ → chalaa-ay). Silent final sihari '
+        'is dropped in-data (ਮੂਰਤਿ → moorat). ਲ਼ absent from corpus.'
     ),
 )
 
