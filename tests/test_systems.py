@@ -76,20 +76,69 @@ class TestDrThind:
 # ---------------------------------------------------------------------------
 
 class TestSTTM:
+    """Current BaniDB scheme (sikhitothemax.org)."""
+
     def test_waheguru(self):
         assert rom('sttm', 'ਵਾਹਿਗੁਰੂ') == 'vaahiguroo'
 
+    def test_dental_t_is_plain_t(self):
+        # BaniDB scheme: ਸਤਿ → sat (not sath)
+        assert rom('sttm', 'ਸਤਿ') == 'sati'
+
+    def test_retroflex_capital_T(self):
+        assert rom('sttm', 'ਟ') == 'Ta'
+
+    def test_retroflex_R(self):
+        # ਪੜਿ → paR in BaniDB output
+        assert rom('sttm', 'ੜ') == 'Ra'
+
+    def test_nasal_parenthesised(self):
+        # ਸੈਭੰ → saibha(n)
+        assert rom('sttm', 'ਸੈਭੰ') == 'saibha(n)'
+
+    def test_dh_merger(self):
+        # Both ਦ and ਧ romanize as dh
+        assert rom('sttm', 'ਦ') == rom('sttm', 'ਧ') == 'dha'
+
+
+class TestSTTMLegacy:
+    """Old SikhiToTheMax scheme, still used by iGurbani."""
+
+    def test_waheguru(self):
+        assert rom('sttm_legacy', 'ਵਾਹਿਗੁਰੂ') == 'vaahiguroo'
+
     def test_dental_t_is_th(self):
-        # STTM uses th for dental ਤ
-        assert rom('sttm', 'ਤ') == 'tha'
+        assert rom('sttm_legacy', 'ਤ') == 'tha'
 
     def test_retroflex_tt(self):
-        # STTM uses tt for retroflex ਟ
-        assert rom('sttm', 'ਟ') == 'tta'
+        assert rom('sttm_legacy', 'ਟ') == 'tta'
 
     def test_satnam(self):
-        # ਸਤਿ with STTM: ਤ → th
-        assert rom('sttm', 'ਸਤਿ') == 'sathi'
+        assert rom('sttm_legacy', 'ਸਤਿ') == 'sathi'
+
+    def test_ek_is_eaek(self):
+        # iGurbani-verified: ਏਕ → eaek
+        assert rom('sttm_legacy', 'ਏਕ') == 'eaeka'
+
+
+class TestBaniDBIPA:
+    def test_bh_is_implosive(self):
+        # ਭੀ → ɓi in BaniDB IPA
+        assert rom('banidb_ipa', 'ਭੀ') == 'ɓi'
+
+    def test_no_length_marks(self):
+        # ਨਾਮ → nɑm + inherent ə (ɑ, not aː)
+        assert rom('banidb_ipa', 'ਨਾਮ') == 'nɑmə'
+
+
+class TestGursevak:
+    def test_sihari_is_e(self):
+        # ਲਿਖ → lekh + inherent a (sihari → e)
+        assert rom('gursevak', 'ਲਿਖ') == 'lekha'
+
+    def test_tippi_superscript(self):
+        # ਸੈਭੰ → saibhaⁿ
+        assert rom('gursevak', 'ਸੈਭੰ') == 'saibhaⁿ'
 
 
 # ---------------------------------------------------------------------------

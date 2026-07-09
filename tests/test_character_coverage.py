@@ -32,6 +32,7 @@ SAFE_RANGES = [
     (0x0300, 0x030F),   # Common combining diacritics (tilde, macron, etc.)
     (0x1D00, 0x1D7F),   # Phonetic Extensions
     (0x1E00, 0x1EFF),   # Latin Extended Additional
+    (0x207F, 0x207F),   # Superscript n (gursevak/banidb_ipa nasal) — in Noto Serif
 ]
 
 
