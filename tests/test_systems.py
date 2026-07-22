@@ -224,6 +224,52 @@ class TestIAST:
 
 
 # ---------------------------------------------------------------------------
+# Shackle (Sacred Language of the Sikhs)
+# ---------------------------------------------------------------------------
+
+class TestShackle:
+    """Expectations from Shackle, A Guru Nanak Glossary (2011), pp. xxi-xxv."""
+
+    def test_waheguru(self):
+        assert rom('shackle', 'ਵਾਹਿਗੁਰੂ') == 'vāhigurū'
+
+    def test_inherent_a_written(self):
+        # Inherent -a written after every unmarked consonant (§2)
+        assert rom('shackle', 'ਸ') == 'sa'
+        assert rom('shackle', 'ਸਤਿ') == 'sati'
+
+    def test_c_and_ch(self):
+        # ਚ → c (not ch); ਛ → ch
+        assert rom('shackle', 'ਚ') == 'ca'
+        assert rom('shackle', 'ਛ') == 'cha'
+
+    def test_retroflex_dots(self):
+        assert rom('shackle', 'ਟ') == 'ṭa'
+        assert rom('shackle', 'ਡ') == 'ḍa'
+        assert rom('shackle', 'ਣ') == 'ṇa'
+        assert rom('shackle', 'ੜ') == 'ṛa'
+
+    def test_long_vowels_macron(self):
+        assert rom('shackle', 'ਕਾ') == 'kā'
+        assert rom('shackle', 'ਕੀ') == 'kī'
+        assert rom('shackle', 'ਕੂ') == 'kū'
+
+    def test_e_o_short(self):
+        # ਏ → e, ਓ → o (no macron)
+        assert rom('shackle', 'ਏਕ') == 'eka'
+        assert rom('shackle', 'ਸੋ') == 'so'
+
+    def test_conjunct_r_v(self):
+        # §3a subjoined clusters (only -r common)
+        assert rom('shackle', 'ਸ੍ਰਵਣੁ') == 'sravaṇu'
+        assert rom('shackle', 'ਸ੍ਵਾਦੁ') == 'svādu'
+
+    def test_doubling_via_addak(self):
+        # §4 doubling; ਪੱਕਾ → pakkā
+        assert rom('shackle', 'ਪੱਕਾ') == 'pakkā'
+
+
+# ---------------------------------------------------------------------------
 # IPA
 # ---------------------------------------------------------------------------
 

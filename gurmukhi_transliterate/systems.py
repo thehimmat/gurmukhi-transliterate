@@ -418,6 +418,59 @@ GURSEVAK = SystemMap(
     ),
 )
 
+SHACKLE = SystemMap(
+    id='shackle',
+    label='Shackle (Sacred Language of the Sikhs)',
+    consonants={
+        'ਸ': 's', 'ਹ': 'h',
+        'ਕ': 'k', 'ਖ': 'kh', 'ਗ': 'g', 'ਘ': 'gh', 'ਙ': 'ṅ',
+        'ਚ': 'c', 'ਛ': 'ch', 'ਜ': 'j', 'ਝ': 'jh', 'ਞ': 'ñ',
+        'ਟ': 'ṭ', 'ਠ': 'ṭh', 'ਡ': 'ḍ', 'ਢ': 'ḍh', 'ਣ': 'ṇ',
+        'ਤ': 't', 'ਥ': 'th', 'ਦ': 'd', 'ਧ': 'dh', 'ਨ': 'n',
+        'ਪ': 'p', 'ਫ': 'ph', 'ਬ': 'b', 'ਭ': 'bh', 'ਮ': 'm',
+        'ਯ': 'y', 'ਰ': 'r', 'ਲ': 'l', 'ਵ': 'v', 'ੜ': 'ṛ',
+        # Perso-Arabic: Shackle underlines letters that would collide with the
+        # Indic set (ਖ਼ → k͟h, see notes). The combining underline (U+035F)
+        # renders as boxes in Noto Serif, so ਖ਼ is degraded to plain 'kh' here
+        # (a documented collision with ਖ, cf. Sant Singh's ਫ/ਫ਼ → f); the
+        # reverse module carries the underlined form for lossless round-trips.
+        'ਸ਼': 'ś', 'ਜ਼': 'z', 'ਗ਼': 'ġ', 'ਖ਼': 'kh', 'ਫ਼': 'f',
+        'ਕ਼': 'q', 'ਲ਼': None,
+    },
+    vowel_diacritics={
+        'ਾ': 'ā', 'ਿ': 'i', 'ੀ': 'ī',
+        'ੁ': 'u', 'ੂ': 'ū', 'ੇ': 'e', 'ੈ': 'ai',
+        'ੋ': 'o', 'ੌ': 'au',
+    },
+    vowels={
+        'ਅ': 'a', 'ਆ': 'ā', 'ਇ': 'i', 'ਈ': 'ī',
+        'ਉ': 'u', 'ਊ': 'ū', 'ਏ': 'e', 'ਐ': 'ai',
+        'ਓ': 'o', 'ਔ': 'au',
+    },
+    # Pure nasalization (§6). Homorganic nasal-group assimilation (§5,
+    # ਸੰਕ → saṅka, ਸੰਤ → santa) is context-dependent and NOT applied by the
+    # generic engine — see notes.
+    nasal_tippi='ṁ',
+    nasal_bindi='ṁ',
+    subjoined={'੍ਰ': 'r', '੍ਵ': 'v', '੍ਹ': 'h', '੍ਤ': 't', '੍ਯ': 'y'},
+    notes=(
+        'Scholarly phonemic transcription from Christopher Shackle, '
+        '"A Guru Nanak Glossary" (2nd ed. 2011), Transcription pp. xxi-xxv. '
+        'Indic core is IAST-like but adds ੜ → ṛ and writes the inherent -a '
+        'after every unmarked consonant. Distinctive Shackle rules the '
+        'generic engine only approximates: (§5) nasal groups assimilate '
+        'homorganically to the following consonant (ੰ → ṅ/ñ/ṇ/n/m: ਸੰਕ '
+        'saṅka, ਸੰਚ sañca, ਸੰਟ saṇṭa, ਸੰਤ santa, ਸੰਪ sampa) — here rendered '
+        'as plain ṁ; (§4) etymological doubling (ਮਤਿ matti) which Gurmukhi '
+        'never marks; (§3b) aspirate sonorants ṇh nh mh rh lh ṛh written with '
+        'subjoined ੍ਹ that print often omits. Because the transcription '
+        'preserves retroflex/dental, aspiration, gemination, final short '
+        'vowels and nasalization, it is unusually reversible — the basis for '
+        'the reverse_transliterate (Shackle → Gurmukhi) module. Persian '
+        'underlines: ਖ਼ k͟h, ਗ਼ ġ, plus s̲ ṣ z̲ s̲h̲ ż ẓ for Perso-Arabic etyma.'
+    ),
+)
+
 # ---------------------------------------------------------------------------
 # Registry
 # ---------------------------------------------------------------------------
@@ -432,6 +485,7 @@ SYSTEMS: dict[str, SystemMap] = {
         GFS,
         SACRED_NITNEM,
         IAST,
+        SHACKLE,
         IPA,
         BANIDB_IPA,
     ]
@@ -439,5 +493,5 @@ SYSTEMS: dict[str, SystemMap] = {
 
 SYSTEM_ORDER = [
     'dr_sant_singh', 'dr_thind', 'sttm', 'sttm_legacy', 'gursevak',
-    'gfs', 'sacred_nitnem', 'iast', 'ipa', 'banidb_ipa',
+    'gfs', 'sacred_nitnem', 'iast', 'shackle', 'ipa', 'banidb_ipa',
 ]
