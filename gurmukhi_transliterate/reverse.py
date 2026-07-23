@@ -45,6 +45,14 @@ _TIPPI = 'ੰ'
 _BINDI = 'ਂ'
 _SUBJOINED_HA = '੍ਹ'
 
+# Aspirate → its unaspirated counterpart (§4: a geminated aspirate is written
+# unaspirate + aspirate, e.g. vaddhi = ਵਧਿ, ugghaṛi = ਉਘੜਿ). Reverse collapses
+# such a pair to the single aspirate letter.
+_UNASPIRATE_OF: dict[str, str] = {
+    'ਖ': 'ਕ', 'ਘ': 'ਗ', 'ਛ': 'ਚ', 'ਝ': 'ਜ', 'ਠ': 'ਟ',
+    'ਢ': 'ਡ', 'ਥ': 'ਤ', 'ਧ': 'ਦ', 'ਫ': 'ਪ', 'ਭ': 'ਬ',
+}
+
 
 @dataclass(frozen=True)
 class _Cons:
@@ -264,9 +272,10 @@ def reverse_transliterate(roman: str) -> ReverseResult:
                 kind='nasalization',
                 source='ṁ',
                 chosen=_TIPPI,
-                alternatives=[_BINDI],
+                alternatives=[_BINDI, ''],
                 start=pos(),
-                note='§6: ṁ may be written with ṭippī ੰ or bindī ਂ',
+                note='§6: ṁ may be written with ṭippī ੰ or bindī ਂ, and is '
+                     'only sometimes marked in the script (often omitted)',
             ))
             out.append(_TIPPI)
             awaiting_cons = False
@@ -295,29 +304,53 @@ def reverse_transliterate(roman: str) -> ReverseResult:
         nxt = next_nonspace(i)
         nxt_is_cons = nxt is not None and nxt.kind == 'C'
 
-        # 1. Gemination: identical consonant, no vowel between → collapses (§4).
-        #    The already-emitted base keeps awaiting the upcoming vowel.
-        if (awaiting_cons and prev_cons_base is not None
-                and c.base == prev_cons_base and not c.aspirate_sonorant):
-            base_g = c.base
-            # Modern spelling marks the geminate with addak *before* the base
-            # consonant (ਮਤਿ → ਮੱਤਿ), so the alternative that replaces the
-            # single base is ੱ + base.
-            ambiguities.append(Ambiguity(
-                kind='gemination',
-                source=tok.roman + tok.roman,
-                chosen=base_g,
-                alternatives=[_ADDAK + base_g],
-                start=prev_cons_offset,
-                note='§4: doubling unmarked in old Gurmukhi; '
-                     'modern spelling may use addak ੱ',
-            ))
-            # do not emit a second letter; stay awaiting the vowel
-            i += 1
-            continue
+        # 1. Gemination (§4), two shapes, both collapsing since Gurmukhi does
+        #    not mark doubling:
+        #      a) identical consonant (matti → ਮਤਿ): keep the emitted base.
+        #      b) unaspirate + its aspirate (ugghaṛi → ਉਘੜਿ): a geminated
+        #         aspirate; replace the emitted unaspirate with the aspirate.
+        if awaiting_cons and prev_cons_base is not None and not c.aspirate_sonorant:
+            is_identical = c.base == prev_cons_base
+            is_aspirate_gem = _UNASPIRATE_OF.get(c.base) == prev_cons_base
+            if is_identical or is_aspirate_gem:
+                base_g = c.base
+                if is_aspirate_gem:
+                    # swap the single unaspirate already in `out` for the aspirate
+                    if out and out[-1] == prev_cons_base:
+                        out[-1] = c.base
+                    else:
+                        out.append(c.base)
+                    prev_cons_base = c.base
+                # Modern spelling marks the geminate with addak *before* the
+                # base consonant (ਮਤਿ → ਮੱਤਿ), so the alternative replacing the
+                # single base is ੱ + base.
+                ambiguities.append(Ambiguity(
+                    kind='gemination',
+                    source=tok.roman,
+                    chosen=base_g,
+                    alternatives=[_ADDAK + base_g],
+                    start=prev_cons_offset,
+                    note='§4: doubling unmarked in old Gurmukhi; '
+                         'modern spelling may use addak ੱ',
+                ))
+                # do not emit a second base; stay awaiting the vowel
+                i += 1
+                continue
 
         # 2. Homorganic nasal group: nasal + consonant, no vowel → ੰ (§5).
         if c.is_nasal and nxt_is_cons:
+            # A geminate nasal (nn, mm, …) is written either ੰ+nasal (§5) or,
+            # as the glossary often prints it, a single collapsed nasal (§4).
+            # Flag the single-nasal alternative (drop the ੰ) for the matcher.
+            if nxt.cons.base == c.base:  # type: ignore[union-attr]
+                ambiguities.append(Ambiguity(
+                    kind='gemination',
+                    source=tok.roman + tok.roman,
+                    chosen=_TIPPI,
+                    alternatives=[''],
+                    start=pos(),
+                    note='§4/§5: geminate nasal may be ੰ+nasal or a single nasal',
+                ))
             out.append(_TIPPI)
             awaiting_cons = False
             prev_cons_base = None
@@ -352,7 +385,10 @@ def reverse_transliterate(roman: str) -> ReverseResult:
         #    subjoin the following consonant via virama (§3a). An *identical*
         #    following consonant is gemination (§4), not a conjunct, so leave it
         #    awaiting its vowel and let the next iteration collapse it.
-        gemination_ahead = nxt_is_cons and nxt.cons.base == c.base  # type: ignore[union-attr]
+        gemination_ahead = nxt_is_cons and (
+            nxt.cons.base == c.base                          # type: ignore[union-attr]
+            or _UNASPIRATE_OF.get(nxt.cons.base) == c.base   # type: ignore[union-attr]
+        )
         if nxt_is_cons and not c.aspirate_sonorant and not gemination_ahead:
             out.append(_VIRAMA)
             awaiting_cons = False

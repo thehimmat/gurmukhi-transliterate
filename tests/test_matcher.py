@@ -30,10 +30,12 @@ class TestCandidateEnumeration:
         # a word with both a persian collision and a nasalization
         res = reverse_transliterate('khaṁ')
         cands = candidate_spellings(res)
-        # ਖ/ਖ਼  ×  ੰ/ਂ  → 4 spellings
-        assert 'ਖੰ' in cands
+        # ਖ/ਖ਼  ×  ੰ/ਂ/(dropped)  → 6 spellings
+        assert 'ਖੰ' in cands     # ṭippī
+        assert 'ਖਂ' in cands     # bindī
+        assert 'ਖ' in cands      # nasal dropped (§6 "only sometimes marked")
         assert 'ਖਾਂ' not in cands  # sanity: no spurious matra
-        assert len(cands) == 4
+        assert len(cands) == 6
 
 
 class TestMatching:
