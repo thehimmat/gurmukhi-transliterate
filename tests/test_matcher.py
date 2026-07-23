@@ -3,6 +3,7 @@
 from gurmukhi_transliterate.matcher import (
     CorpusMatcher,
     candidate_spellings,
+    load_lexicon,
 )
 from gurmukhi_transliterate.reverse import reverse_transliterate
 
@@ -72,3 +73,19 @@ class TestMatching:
         matcher = CorpusMatcher({'ਸਤਿ': 3})
         assert 'ਸਤਿ' in matcher
         assert 'ਨਾਮੁ' not in matcher
+
+
+class TestFileLoader:
+    def test_from_file(self, tmp_path):
+        # word<TAB>frequency, with a comment and a bare-word line
+        p = tmp_path / 'lex.tsv'
+        p.write_text(
+            '# SGGS sample\nਸਾਂ\t40\nਸੰਤ\t691\nਨਾਮੁ\n',
+            encoding='utf-8',
+        )
+        freq = load_lexicon(p)
+        assert freq['ਸਾਂ'] == 40
+        assert freq['ਨਾਮੁ'] == 1  # bare word → frequency 1
+        matcher = CorpusMatcher.from_file(p)
+        # sāṁ primary is ṭippī ਸਾੰ (not in file); resolves to attested bindī ਸਾਂ
+        assert matcher.match('sāṁ').best == 'ਸਾਂ'

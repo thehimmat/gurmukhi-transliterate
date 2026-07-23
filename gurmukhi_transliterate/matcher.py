@@ -28,6 +28,7 @@ from __future__ import annotations
 import unicodedata
 from dataclasses import dataclass, field
 from itertools import product
+from pathlib import Path
 from typing import Iterable, Mapping
 
 from .reverse import ReverseResult, reverse_transliterate
@@ -156,3 +157,33 @@ class CorpusMatcher:
             candidates=candidates,
             matches=matches,
         )
+
+    @classmethod
+    def from_file(cls, path: str | Path) -> "CorpusMatcher":
+        """Build a matcher from a lexicon file.
+
+        Accepts one word per line, optionally ``word<TAB>frequency`` (extra
+        columns ignored). Blank lines and lines starting with ``#`` are
+        skipped. This is the seam for the SGGS word index: export the kosh
+        ``words`` table (gurmukhi, frequency) to such a file, or inject the
+        list directly via the constructor.
+        """
+        return cls(load_lexicon(path))
+
+
+def load_lexicon(path: str | Path) -> dict[str, int]:
+    """Read a ``word[<TAB>frequency]`` lexicon file into a frequency map."""
+    freq: dict[str, int] = {}
+    for raw in Path(path).read_text(encoding='utf-8').splitlines():
+        line = raw.strip()
+        if not line or line.startswith('#'):
+            continue
+        parts = line.split('\t')
+        word = unicodedata.normalize('NFC', parts[0].strip())
+        if not word:
+            continue
+        try:
+            freq[word] = int(parts[1]) if len(parts) > 1 else 1
+        except ValueError:
+            freq[word] = 1
+    return freq
