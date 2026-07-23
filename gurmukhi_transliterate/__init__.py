@@ -10,6 +10,12 @@ from .reverse import (
     ReverseResult,
     Ambiguity,
 )
+from .matcher import (
+    CorpusMatcher,
+    MatchResult,
+    Candidate,
+    candidate_spellings,
+)
 
 __all__ = [
     "GurmukhiISO15919",
@@ -25,4 +31,8 @@ __all__ = [
     "shackle_to_gurmukhi",
     "ReverseResult",
     "Ambiguity",
+    "CorpusMatcher",
+    "MatchResult",
+    "Candidate",
+    "candidate_spellings",
 ]

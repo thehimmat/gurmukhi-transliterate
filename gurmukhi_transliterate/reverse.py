@@ -149,6 +149,7 @@ class Ambiguity:
     source: str               # the romanized fragment that was ambiguous
     chosen: str               # Gurmukhi fragment used in the primary output
     alternatives: list[str]   # other valid Gurmukhi fragments
+    start: int = 0            # offset of `chosen` within ReverseResult.gurmukhi
     note: str = ''
 
 
@@ -233,6 +234,10 @@ def reverse_transliterate(roman: str) -> ReverseResult:
     # "awaiting" its vowel (so a following vowel becomes a matra). -1 = none.
     awaiting_cons = False
     prev_cons_base: str | None = None  # for gemination detection
+    prev_cons_offset = 0               # offset of prev base for gemination flag
+
+    def pos() -> int:
+        return sum(len(x) for x in out)
 
     def next_nonspace(idx: int) -> _Tok | None:
         j = idx + 1
@@ -255,14 +260,15 @@ def reverse_transliterate(roman: str) -> ReverseResult:
 
         if tok.kind == 'N':
             # Nasalization: ṭippī (primary) or bindī (alternative)
-            out.append(_TIPPI)
             ambiguities.append(Ambiguity(
                 kind='nasalization',
                 source='ṁ',
                 chosen=_TIPPI,
                 alternatives=[_BINDI],
+                start=pos(),
                 note='§6: ṁ may be written with ṭippī ੰ or bindī ਂ',
             ))
+            out.append(_TIPPI)
             awaiting_cons = False
             prev_cons_base = None
             i += 1
@@ -294,12 +300,15 @@ def reverse_transliterate(roman: str) -> ReverseResult:
         if (awaiting_cons and prev_cons_base is not None
                 and c.base == prev_cons_base and not c.aspirate_sonorant):
             base_g = c.base
+            # Modern spelling marks the geminate with addak *before* the base
+            # consonant (ਮਤਿ → ਮੱਤਿ), so the alternative that replaces the
+            # single base is ੱ + base.
             ambiguities.append(Ambiguity(
                 kind='gemination',
                 source=tok.roman + tok.roman,
                 chosen=base_g,
-                alternatives=[base_g[0] + _ADDAK + base_g[0]
-                              if len(base_g) == 1 else base_g],
+                alternatives=[_ADDAK + base_g],
+                start=prev_cons_offset,
                 note='§4: doubling unmarked in old Gurmukhi; '
                      'modern spelling may use addak ੱ',
             ))
@@ -316,6 +325,7 @@ def reverse_transliterate(roman: str) -> ReverseResult:
             continue
 
         # 3. Emit the base consonant.
+        base_offset = pos()
         out.append(c.base)
         if c.aspirate_sonorant:
             out.append(_SUBJOINED_HA)  # base + ੍ਹ (§3b)
@@ -324,6 +334,7 @@ def reverse_transliterate(roman: str) -> ReverseResult:
                 source=tok.roman,
                 chosen=c.base + _SUBJOINED_HA,
                 alternatives=[c.base + 'ਹ', c.base],
+                start=base_offset,
                 note='§3b: subjoined ੍ਹ is often omitted in print',
             ))
         elif c.persian_collision:
@@ -332,6 +343,7 @@ def reverse_transliterate(roman: str) -> ReverseResult:
                 source=tok.roman,
                 chosen=c.base,
                 alternatives=['ਖ਼'],
+                start=base_offset,
                 note='§8: a degraded (underline-dropped) k͟h could be ਖ਼',
             ))
 
@@ -348,6 +360,7 @@ def reverse_transliterate(roman: str) -> ReverseResult:
         else:
             awaiting_cons = True
             prev_cons_base = c.base
+            prev_cons_offset = base_offset
         i += 1
 
     return ReverseResult(gurmukhi=''.join(out), ambiguities=ambiguities)
