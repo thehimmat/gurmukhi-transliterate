@@ -76,20 +76,93 @@ class TestDrThind:
 # ---------------------------------------------------------------------------
 
 class TestSTTM:
+    """Current BaniDB scheme (sikhitothemax.org)."""
+
     def test_waheguru(self):
         assert rom('sttm', 'ਵਾਹਿਗੁਰੂ') == 'vaahiguroo'
 
+    def test_dental_t_is_plain_t(self):
+        # BaniDB scheme: ਸਤਿ → sat (not sath)
+        assert rom('sttm', 'ਸਤਿ') == 'sati'
+
+    def test_retroflex_capital_T(self):
+        assert rom('sttm', 'ਟ') == 'Ta'
+
+    def test_retroflex_R(self):
+        # ਪੜਿ → paR in BaniDB output
+        assert rom('sttm', 'ੜ') == 'Ra'
+
+    def test_nasal_parenthesised(self):
+        # ਸੈਭੰ → saibha(n)
+        assert rom('sttm', 'ਸੈਭੰ') == 'saibha(n)'
+
+    def test_dh_merger(self):
+        # Both ਦ and ਧ romanize as dh
+        assert rom('sttm', 'ਦ') == rom('sttm', 'ਧ') == 'dha'
+
+
+class TestSTTMLegacy:
+    """Old SikhiToTheMax scheme, still used by iGurbani."""
+
+    def test_waheguru(self):
+        assert rom('sttm_legacy', 'ਵਾਹਿਗੁਰੂ') == 'vaahiguroo'
+
     def test_dental_t_is_th(self):
-        # STTM uses th for dental ਤ
-        assert rom('sttm', 'ਤ') == 'tha'
+        assert rom('sttm_legacy', 'ਤ') == 'tha'
 
     def test_retroflex_tt(self):
-        # STTM uses tt for retroflex ਟ
-        assert rom('sttm', 'ਟ') == 'tta'
+        assert rom('sttm_legacy', 'ਟ') == 'tta'
 
     def test_satnam(self):
-        # ਸਤਿ with STTM: ਤ → th
-        assert rom('sttm', 'ਸਤਿ') == 'sathi'
+        assert rom('sttm_legacy', 'ਸਤਿ') == 'sathi'
+
+    def test_ek_is_eaek(self):
+        # iGurbani-verified: ਏਕ → eaek
+        assert rom('sttm_legacy', 'ਏਕ') == 'eaeka'
+
+
+class TestBaniDBIPA:
+    def test_bh_is_implosive(self):
+        # ਭੀ → ɓi in BaniDB IPA
+        assert rom('banidb_ipa', 'ਭੀ') == 'ɓi'
+
+    def test_no_length_marks(self):
+        # ਨਾਮ → nɑm + inherent ə (ɑ, not aː)
+        assert rom('banidb_ipa', 'ਨਾਮ') == 'nɑmə'
+
+
+class TestGursevak:
+    """Expectations verified against the app's Gursevak.sqlite (v3.01)."""
+
+    def test_sihari_is_e(self):
+        # ਲਿਖ → lekh + inherent a (sihari → e)
+        assert rom('gursevak', 'ਲਿਖ') == 'lekha'
+
+    def test_tippi_superscript(self):
+        # ਸੈਭੰ → saibhaⁿ
+        assert rom('gursevak', 'ਸੈਭੰ') == 'saibhaⁿ'
+
+    def test_laavaan_is_ay(self):
+        # DB: ਜੇ → j‹ay›
+        assert rom('gursevak', 'ਜੇ') == 'jay'
+
+    def test_retroflex_series(self):
+        # DB: ਤੋਟਿ → t‹o›tt‹e›, ਠਾਕ → tth‹aa›k, ਢਾਲਿ → ddh‹aa›l‹e›
+        assert rom('gursevak', 'ਤੋਟਿ') == 'totte'
+        assert rom('gursevak', 'ਠਾਕ') == 'tthaaka'
+        assert rom('gursevak', 'ਢਾਲਿ') == 'ddhaale'
+
+    def test_nn_for_nanna(self):
+        # DB: ਜਾਣੈ → j‹aa›nn‹ai›
+        assert rom('gursevak', 'ਜਾਣੈ') == 'jaannai'
+
+    def test_capital_Y(self):
+        # DB: ਯਯਾ → YaY‹aa›
+        assert rom('gursevak', 'ਯਯਾ') == 'YaYaa'
+
+    def test_dental_d_plain(self):
+        # DB: ਦੁਖ → d‹u›kh (d, not dh)
+        assert rom('gursevak', 'ਦੁਖ') == 'dukha'
 
 
 # ---------------------------------------------------------------------------
@@ -148,6 +221,52 @@ class TestIAST:
         # IAST doesn't support Persian letters → skip silently
         result = rom('iast', 'ਜ਼')
         assert 'z' not in result
+
+
+# ---------------------------------------------------------------------------
+# Shackle (Sacred Language of the Sikhs)
+# ---------------------------------------------------------------------------
+
+class TestShackle:
+    """Expectations from Shackle, A Guru Nanak Glossary (2011), pp. xxi-xxv."""
+
+    def test_waheguru(self):
+        assert rom('shackle', 'ਵਾਹਿਗੁਰੂ') == 'vāhigurū'
+
+    def test_inherent_a_written(self):
+        # Inherent -a written after every unmarked consonant (§2)
+        assert rom('shackle', 'ਸ') == 'sa'
+        assert rom('shackle', 'ਸਤਿ') == 'sati'
+
+    def test_c_and_ch(self):
+        # ਚ → c (not ch); ਛ → ch
+        assert rom('shackle', 'ਚ') == 'ca'
+        assert rom('shackle', 'ਛ') == 'cha'
+
+    def test_retroflex_dots(self):
+        assert rom('shackle', 'ਟ') == 'ṭa'
+        assert rom('shackle', 'ਡ') == 'ḍa'
+        assert rom('shackle', 'ਣ') == 'ṇa'
+        assert rom('shackle', 'ੜ') == 'ṛa'
+
+    def test_long_vowels_macron(self):
+        assert rom('shackle', 'ਕਾ') == 'kā'
+        assert rom('shackle', 'ਕੀ') == 'kī'
+        assert rom('shackle', 'ਕੂ') == 'kū'
+
+    def test_e_o_short(self):
+        # ਏ → e, ਓ → o (no macron)
+        assert rom('shackle', 'ਏਕ') == 'eka'
+        assert rom('shackle', 'ਸੋ') == 'so'
+
+    def test_conjunct_r_v(self):
+        # §3a subjoined clusters (only -r common)
+        assert rom('shackle', 'ਸ੍ਰਵਣੁ') == 'sravaṇu'
+        assert rom('shackle', 'ਸ੍ਵਾਦੁ') == 'svādu'
+
+    def test_doubling_via_addak(self):
+        # §4 doubling; ਪੱਕਾ → pakkā
+        assert rom('shackle', 'ਪੱਕਾ') == 'pakkā'
 
 
 # ---------------------------------------------------------------------------
