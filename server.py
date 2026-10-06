@@ -7,14 +7,13 @@ from urllib.parse import urlparse, parse_qs
 
 sys.path.insert(0, ".")
 from gurmukhi_transliterate import (
-    GurmukhiISO15919, GurmukhiPractical, GurmukhiLegacy,
+    GurmukhiISO15919, GurmukhiPractical,
     GurmukhiRomanizer, SYSTEMS, SYSTEM_ORDER,
-    comparison_table, identify_system,
+    comparison_table, identify_system, conversion_report,
 )
 
 iso = GurmukhiISO15919()
 practical = GurmukhiPractical()
-legacy = GurmukhiLegacy()
 
 # Build JS-safe system list for the UI
 _SYSTEM_JS = json.dumps([
@@ -118,7 +117,9 @@ HTML = """<!DOCTYPE html>
       flex: 1; min-width: 200px;
       background: #1a1a1a; border: 1px solid #2e2e2e;
       border-radius: 8px; padding: 0.75rem 1rem; font-size: 1.5rem;
+      white-space: pre-wrap;
     }
+    .legacy-notes { font-size: 0.8rem; color: #888; white-space: pre-wrap; }
 
     /* Schwa deletion checkbox */
     .checkbox-row {
@@ -289,6 +290,7 @@ HTML = """<!DOCTYPE html>
       <span class="legacy-arrow">→</span>
       <div class="legacy-result" id="legacy-output" style="color:#444;font-style:italic;font-size:0.9rem">—</div>
     </div>
+    <div class="legacy-notes" id="legacy-notes"></div>
   </div>
 
   <!-- Identify section -->
@@ -448,17 +450,30 @@ HTML = """<!DOCTYPE html>
       const res = await fetch('/api/legacy?text=' + encodeURIComponent(text));
       return res.json();
     }
+    function legacyNotes(data) {
+      const notes = [];
+      if (data.encoding === 'latin') notes.push('This looks like Latin-script text (English or romanised), not a legacy font.');
+      if (data.encoding === 'unicode') notes.push('This is already Unicode Gurmukhi.');
+      const unmapped = [...new Set(data.warnings.filter(w => w.kind === 'unmapped').map(w => w.char))];
+      if (unmapped.length) notes.push('Unmapped characters kept as-is: ' + unmapped.join(' '));
+      const orphans = data.warnings.filter(w => w.kind === 'orphan_sihari').length;
+      if (orphans) notes.push(orphans + ' sihari with no following consonant, attached to the previous letter.');
+      return notes.join('\\n');
+    }
     const legacyInputEl = document.getElementById('legacy-input');
     const legacyOutputEl = document.getElementById('legacy-output');
+    const legacyNotesEl = document.getElementById('legacy-notes');
     const updateLegacy = debounce(async (text) => {
       if (!text.trim()) {
         legacyOutputEl.textContent = '—';
         legacyOutputEl.style.cssText = 'color:#444;font-style:italic;font-size:0.9rem';
+        legacyNotesEl.textContent = '';
         return;
       }
       const data = await convertLegacy(text);
       legacyOutputEl.textContent = data.unicode || '—';
       legacyOutputEl.style.cssText = '';
+      legacyNotesEl.textContent = legacyNotes(data);
     }, 80);
     legacyInputEl.addEventListener('input', e => updateLegacy(e.target.value));
 
@@ -551,7 +566,7 @@ class Handler(BaseHTTPRequestHandler):
 
         elif path == "/api/legacy":
             text = params.get("text", [""])[0]
-            self.send_json({"unicode": legacy.to_unicode(text)})
+            self.send_json(conversion_report(text))
 
         else:
             self.send_json({"error": "not found"}, 404)

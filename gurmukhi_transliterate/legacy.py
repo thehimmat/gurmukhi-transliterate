@@ -12,7 +12,7 @@ allowing them to work with both Unicode and legacy input formats.
 
 import logging
 import unicodedata
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 
 
 @dataclass(frozen=True)
@@ -396,3 +396,18 @@ class GurmukhiLegacy:
     def detect_lines(cls, text: str) -> list[EncodingGuess]:
         """One :class:`EncodingGuess` per line of *text*, for routing mixed pages."""
         return [cls._guess(line) for line in text.split('\n')]
+
+
+def conversion_report(text: str) -> dict:
+    """Convert *text* and describe it, as a JSON-ready dict for API responses.
+
+    Keys: ``unicode`` (converted text), ``encoding`` (whole-text guess),
+    ``lines`` (one ``{label, score}`` per input line) and ``warnings``.
+    """
+    result = GurmukhiLegacy.convert(text)
+    return {
+        'unicode': result.text,
+        'encoding': GurmukhiLegacy.detect_encoding(text),
+        'lines': [asdict(g) for g in GurmukhiLegacy.detect_lines(text)],
+        'warnings': [asdict(w) for w in result.warnings],
+    }

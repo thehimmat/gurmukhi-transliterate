@@ -5,9 +5,7 @@ from urllib.parse import urlparse, parse_qs
 from http.server import BaseHTTPRequestHandler
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from gurmukhi_transliterate import GurmukhiLegacy
-
-legacy = GurmukhiLegacy()
+from gurmukhi_transliterate import conversion_report
 
 
 class handler(BaseHTTPRequestHandler):
@@ -16,7 +14,7 @@ class handler(BaseHTTPRequestHandler):
         params = parse_qs(parsed.query)
         text = params.get("text", [""])[0]
 
-        result = {"unicode": legacy.to_unicode(text)}
+        result = conversion_report(text)
 
         body = json.dumps(result).encode()
         self.send_response(200)

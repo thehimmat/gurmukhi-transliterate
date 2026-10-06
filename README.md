@@ -84,6 +84,18 @@ GurmukhiLegacy.detect_encoding('Awid scu jugwid scu ]')   # 'anmollipi'
 GurmukhiLegacy.detect_encoding('Hanūmān Nāṭak')           # 'latin'
 ```
 
+`conversion_report(text)` bundles all of this into one JSON-ready dict, which is what
+`GET /api/legacy?text=…` returns:
+
+```json
+{"unicode": "ਕèਕ", "encoding": "latin",
+ "lines": [{"label": "latin", "score": 1.0}],
+ "warnings": [{"position": 1, "char": "è", "kind": "unmapped", "message": "no mapping; passed through"}]}
+```
+
+Real-text regression fixtures live in `tests/fixtures/legacy/` as parallel
+`<name>.gurbaniakhar.txt` / `<name>.unicode.txt` files, compared line by line.
+
 ## Develop
 
 ```bash
