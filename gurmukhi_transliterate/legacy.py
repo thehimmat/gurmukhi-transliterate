@@ -12,6 +12,22 @@ allowing them to work with both Unicode and legacy input formats.
 
 import logging
 import unicodedata
+from dataclasses import dataclass, field
+
+
+@dataclass(frozen=True)
+class ConversionWarning:
+    position: int  # index into the input text
+    char: str
+    kind: str      # 'unmapped' | 'orphan_sihari'
+    message: str
+
+
+@dataclass
+class ConversionResult:
+    text: str
+    warnings: list[ConversionWarning] = field(default_factory=list)
+
 
 class GurmukhiLegacy:
     # Special combinations that need to be processed first
@@ -179,75 +195,125 @@ class GurmukhiLegacy:
         '®': '੍ਰ',    # pair rara
     }
 
+    # ASCII punctuation with no Gurmukhi meaning in the font; passed through as-is.
+    # ':' is a literal colon here (visarg is 'Ú').
+    PASSTHROUGH = set(' \t\r\n,:;-?!()\'".*')
+
+    SIHARI_KEY = 'i'
+    NUKTA_KEY = 'æ'
+
+    @staticmethod
+    def _is_cluster_base(unicode_char: str) -> bool:
+        """True for consonants (incl. nukta forms) and the vowel carriers ੳ ਅ ੲ."""
+        cp = ord(unicode_char[0])
+        return (0x0A15 <= cp <= 0x0A39 or 0x0A59 <= cp <= 0x0A5E
+                or unicode_char[0] in 'ਅੲੳ')
+
     @classmethod
-    def to_unicode(cls, text: str, encoding: str = 'anmollipi') -> str:
-        """Convert legacy encoded text to Unicode Gurmukhi."""
-        if not text:
-            return ""
-            
+    def _is_word_break(cls, unicode_char: str) -> bool:
+        """Characters a sihari may never attach to or move across."""
+        cp = ord(unicode_char[0])
+        return (unicode_char[0] in cls.PASSTHROUGH
+                or 0x0A66 <= cp <= 0x0A6F       # digits
+                or unicode_char[0] in '।॥ੴ')
+
+    @classmethod
+    def _match(cls, text: str, i: int):
+        """Return (unicode, length) for the token at i, or (None, 1) if unmapped."""
+        for combo, replacement in cls.SPECIAL_COMBINATIONS.items():
+            if text.startswith(combo, i):
+                return replacement, len(combo)
+        if text[i] in cls.ANMOLLIPI_MAP:
+            return cls.ANMOLLIPI_MAP[text[i]], 1
+        if text[i] in cls.SUBJOINED_MAP:
+            return cls.SUBJOINED_MAP[text[i]], 1
+        return None, 1
+
+    @classmethod
+    def convert(cls, text: str, encoding: str = 'anmollipi') -> 'ConversionResult':
+        """Convert legacy encoded text to Unicode Gurmukhi, reporting anything suspect.
+
+        Line structure is preserved exactly, and no input character is dropped:
+        unmapped characters pass through and are reported in ``warnings``.
+        """
         if encoding.lower() != 'anmollipi':
             raise ValueError(f"Unsupported encoding: {encoding}")
 
-        logger = logging.getLogger(__name__)
-        
-        try:
-            chars = []
-            sihari_position = None
-            i = 0
-            while i < len(text):
-                # Check for special combinations FIRST
-                found_special = False
-                for combo, replacement in cls.SPECIAL_COMBINATIONS.items():
-                    if text[i:i+len(combo)] == combo:
-                        chars.append(replacement)
-                        i += len(combo)
-                        found_special = True
-                        break
-                
-                if found_special:
-                    continue
+        sihari = cls.ANMOLLIPI_MAP[cls.SIHARI_KEY]
+        chars = []
+        warnings = []
+        pending_sihari = None    # input position of a sihari waiting for its consonant
+        last_cluster_end = None  # where an orphan sihari goes, within the current word
 
-                char = text[i]
-                next_char = text[i + 1] if i + 1 < len(text) else None
+        def flush_orphan():
+            nonlocal pending_sihari
+            if pending_sihari is None:
+                return
+            at = last_cluster_end if last_cluster_end is not None else len(chars)
+            chars.insert(at, sihari)
+            warnings.append(ConversionWarning(
+                pending_sihari, cls.SIHARI_KEY, 'orphan_sihari',
+                'sihari with no following consonant in its word'))
+            pending_sihari = None
 
-                # Handle sihari
-                if char == 'i':  # sihari
-                    sihari_position = len(chars)  # Mark position for later insertion
+        i = 0
+        while i < len(text):
+            unicode_char, length = cls._match(text, i)
+
+            if unicode_char is None:
+                if text[i] in cls.PASSTHROUGH:
+                    unicode_char = text[i]
+                else:
+                    flush_orphan()
+                    last_cluster_end = None
+                    chars.append(text[i])
+                    warnings.append(ConversionWarning(
+                        i, text[i], 'unmapped', 'no mapping; passed through'))
                     i += 1
                     continue
 
-                # Process regular characters first
-                if char in cls.ANMOLLIPI_MAP:
-                    base_pos = len(chars)
-                    chars.append(cls.ANMOLLIPI_MAP[char])
-                    
-                    # Look ahead for subjoined characters
-                    next_pos = i + 1
-                    while next_pos < len(text) and text[next_pos] in cls.SUBJOINED_MAP:
-                        chars.append(cls.SUBJOINED_MAP[text[next_pos]])
-                        next_pos += 1
-                    
-                    # Insert sihari after base and its subjoined characters
-                    if sihari_position is not None and sihari_position <= base_pos:
-                        chars.insert(len(chars), cls.ANMOLLIPI_MAP['i'])
-                        sihari_position = None
-                        
-                    i = next_pos
-                    continue
-                
+            if length == 1 and text[i] == cls.SIHARI_KEY:
+                if pending_sihari is not None:
+                    flush_orphan()
+                pending_sihari = i
                 i += 1
+                continue
 
-            # Add any remaining sihari
-            if sihari_position is not None:
-                chars.append(cls.ANMOLLIPI_MAP['i'])
+            if cls._is_cluster_base(unicode_char):
+                chars.append(unicode_char)
+                i += length
+                # The cluster continues through a nukta and any subjoined letters.
+                while i < len(text) and (text[i] == cls.NUKTA_KEY or text[i] in cls.SUBJOINED_MAP):
+                    chars.append(cls.SUBJOINED_MAP.get(text[i], cls.ANMOLLIPI_MAP[cls.NUKTA_KEY]))
+                    i += 1
+                if pending_sihari is not None:
+                    chars.append(sihari)
+                    pending_sihari = None
+                last_cluster_end = len(chars)
+                continue
 
-        except Exception as e:
-            logger.error(f"Error at position {i}: {str(e)}")
-            raise
+            if cls._is_word_break(unicode_char):
+                flush_orphan()
+                last_cluster_end = None
 
-        result = ''.join(chars)
-        lines = [line.strip() for line in result.split('\n') if line.strip()]
-        return unicodedata.normalize('NFC', '\n\n'.join(lines))
+            chars.append(unicode_char)
+            i += length
+
+        flush_orphan()
+        return ConversionResult(unicodedata.normalize('NFC', ''.join(chars)), warnings)
+
+    @classmethod
+    def to_unicode(cls, text: str, encoding: str = 'anmollipi') -> str:
+        """Convert legacy encoded text to Unicode Gurmukhi.
+
+        Warnings (unmapped characters, orphan sihari) are logged; use ``convert``
+        to receive them as data.
+        """
+        result = cls.convert(text, encoding)
+        logger = logging.getLogger(__name__)
+        for w in result.warnings:
+            logger.warning("%s at position %d (%r): %s", w.kind, w.position, w.char, w.message)
+        return result.text
 
     @classmethod
     def detect_encoding(cls, text: str) -> str:

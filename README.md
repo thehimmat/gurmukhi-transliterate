@@ -60,6 +60,20 @@ pip install -e .
 from gurmukhi_transliterate import GurmukhiISO15919, GurmukhiPractical, GurmukhiLegacy
 ```
 
+### Legacy font conversion
+
+`GurmukhiLegacy.to_unicode` converts AnmolLipi/GurbaniAkhar-encoded text to Unicode.
+It keeps line structure exactly (same newlines in and out) and never drops input:
+ASCII punctuation passes through, and anything unmapped is kept and logged.
+Use `convert` to get those warnings as data:
+
+```python
+GurmukhiLegacy.to_unicode('ikæsmq')      # 'ਕ਼ਿਸਮਤ' (consonant, nukta, sihari)
+result = GurmukhiLegacy.convert('kèk')
+result.text                               # 'ਕèਕ'
+result.warnings                           # [ConversionWarning(position=1, char='è', kind='unmapped', ...)]
+```
+
 ## Develop
 
 ```bash
