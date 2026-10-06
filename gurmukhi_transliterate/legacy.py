@@ -23,6 +23,12 @@ class ConversionWarning:
     message: str
 
 
+@dataclass(frozen=True)
+class EncodingGuess:
+    label: str    # 'unicode' | 'anmollipi' | 'latin' | 'unknown'
+    score: float  # confidence in label, 0..1
+
+
 @dataclass
 class ConversionResult:
     text: str
@@ -315,7 +321,78 @@ class GurmukhiLegacy:
             logger.warning("%s at position %d (%r): %s", w.kind, w.position, w.char, w.message)
         return result.text
 
+    # Dependent signs that can never start a word in AnmolLipi. Sihari ('i') is
+    # typed before its consonant, so it may.
+    VOWEL_SIGN_KEYS = set('wIuUyYoOü¨')
+    NON_INITIAL_KEYS = VOWEL_SIGN_KEYS | set('MNµˆWæÚ`~@') | set(SUBJOINED_MAP)
+    # Minimum (length-weighted) share of plausible words to call ASCII text legacy.
+    LEGACY_THRESHOLD = 0.8
+
+    @classmethod
+    def _is_plausible_legacy_word(cls, word: str) -> bool:
+        """Whether a word obeys AnmolLipi spelling structure.
+
+        English (and most romanised) words break these rules constantly: in
+        AnmolLipi 'a' (ੳ) only carries u/U/o, 'e' (ੲ) only carries sihari,
+        bihari or lavan, and dependent vowel signs never start a word or stack.
+        """
+        letters = [c for c in word if c not in cls.PASSTHROUGH]
+        if not letters or letters[0] in cls.NON_INITIAL_KEYS:
+            return False
+        for j, c in enumerate(letters):
+            nxt = letters[j + 1] if j + 1 < len(letters) else ''
+            prev = letters[j - 1] if j else ''
+            if c == 'a' and nxt not in ('u', 'U', 'o', 'ü', '¨'):
+                return False
+            if c == 'e' and prev != 'i' and nxt not in ('I', 'y', 'Y'):
+                return False
+            if c in cls.VOWEL_SIGN_KEYS and nxt in cls.VOWEL_SIGN_KEYS:
+                return False
+        return True
+
+    @classmethod
+    def _guess(cls, text: str) -> EncodingGuess:
+        legacy_keys = set(cls.ANMOLLIPI_MAP) | set(cls.SUBJOINED_MAP) | {'[', ']', 'ƒ'}
+        gurmukhi = sum(1 for c in text if '\u0A00' <= c <= '\u0A7F')
+        latin = sum(1 for c in text if c.isalpha() and c not in legacy_keys
+                    and not '\u0A00' <= c <= '\u0A7F')
+        if gurmukhi and gurmukhi >= latin:
+            letters = gurmukhi + sum(1 for c in text if c.isalpha() and c.isascii())
+            return EncodingGuess('unicode', gurmukhi / max(letters, gurmukhi))
+
+        plausible = total = 0
+        for raw in text.split():
+            # Digits and brackets carry no signal: they occur in both encodings.
+            word = ''.join(c for c in raw if not (c.isdigit() or c in '[]<>¡'))
+            if not any(c.isalpha() for c in word):
+                continue
+            weight = len(word)
+            total += weight
+            if not any(c.isalpha() and c not in legacy_keys for c in word) \
+                    and cls._is_plausible_legacy_word(word):
+                plausible += weight
+        if not total:
+            return EncodingGuess('unknown', 0.0)
+        share = plausible / total
+        if share >= cls.LEGACY_THRESHOLD:
+            return EncodingGuess('anmollipi', share)
+        return EncodingGuess('latin', 1 - share)
+
     @classmethod
     def detect_encoding(cls, text: str) -> str:
-        """Attempt to detect the encoding of the input text."""
-        return 'unicode' 
+        """Guess the encoding of *text*: 'unicode', 'anmollipi', 'latin' or 'unknown'.
+
+        'anmollipi' covers the GurbaniAkhar/AnmolLipi keyboard family. 'latin'
+        means Latin-script text that isn't legacy Gurmukhi: English, or
+        romanised Gurmukhi (see issue #16 for telling those apart).
+
+        Detection is structural: ASCII words are checked against AnmolLipi
+        spelling rules. A short line made only of words that are also valid
+        AnmolLipi (e.g. 'so is it') is genuinely ambiguous and reads as legacy.
+        """
+        return cls._guess(text).label
+
+    @classmethod
+    def detect_lines(cls, text: str) -> list[EncodingGuess]:
+        """One :class:`EncodingGuess` per line of *text*, for routing mixed pages."""
+        return [cls._guess(line) for line in text.split('\n')]
