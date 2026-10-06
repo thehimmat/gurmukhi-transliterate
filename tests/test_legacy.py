@@ -249,3 +249,25 @@ class TestNuktaNormalisation:
         out = to_unicode(legacy)
         assert len(out) == 2 and out[1] == NUKTA
         assert not any(c in out for c in 'ਲ਼ਸ਼ਖ਼ਗ਼ਜ਼ਫ਼')
+
+
+class TestConversionReport:
+    def test_shape(self):
+        from gurmukhi_transliterate import conversion_report
+        report = conversion_report('Introduction\nkèk')
+        assert report['unicode'] == GurmukhiLegacy.to_unicode('Introduction\nkèk')
+        assert report['encoding'] in {'unicode', 'anmollipi', 'latin', 'unknown'}
+        assert [line['label'] for line in report['lines']] == ['latin', 'latin']
+        assert all(0.0 <= line['score'] <= 1.0 for line in report['lines'])
+        assert {'position': 14, 'char': 'è', 'kind': 'unmapped'}.items() <= report['warnings'][-1].items()
+
+    def test_json_serialisable(self):
+        import json
+        from gurmukhi_transliterate import conversion_report
+        json.dumps(conversion_report('ki b-Xwd'))
+
+    def test_empty(self):
+        from gurmukhi_transliterate import conversion_report
+        assert conversion_report('') == {'unicode': '', 'encoding': 'unknown',
+                                         'lines': [{'label': 'unknown', 'score': 0.0}],
+                                         'warnings': []}

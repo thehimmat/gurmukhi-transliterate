@@ -372,6 +372,15 @@
       color: var(--text-primary);
       min-height: 3.25rem;
       word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .legacy-notes {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      white-space: pre-wrap;
     }
 
     .legacy-result.empty {
@@ -483,6 +492,7 @@
       <span class="arrow">→</span>
       <div class="legacy-result empty" id="legacy-output">—</div>
     </div>
+    <div class="legacy-notes" id="legacy-notes"></div>
   </main>
 
   <footer>
@@ -754,15 +764,28 @@
     });
 
     // Legacy
+    function legacyNotes(data) {
+      const notes = [];
+      if (data.encoding === 'latin') notes.push('This looks like Latin-script text (English or romanised), not a legacy font.');
+      if (data.encoding === 'unicode') notes.push('This is already Unicode Gurmukhi.');
+      const unmapped = [...new Set(data.warnings.filter(w => w.kind === 'unmapped').map(w => w.char))];
+      if (unmapped.length) notes.push('Unmapped characters kept as-is: ' + unmapped.join(' '));
+      const orphans = data.warnings.filter(w => w.kind === 'orphan_sihari').length;
+      if (orphans) notes.push(orphans + ' sihari with no following consonant, attached to the previous letter.');
+      return notes.join('\n');
+    }
     const legacyInputEl = document.getElementById('legacy-input');
     const legacyOutputEl = document.getElementById('legacy-output');
+    const legacyNotesEl = document.getElementById('legacy-notes');
     const updateLegacy = debounce(async (text) => {
       if (!text.trim()) {
-        legacyOutputEl.textContent = '—'; legacyOutputEl.className = 'legacy-result empty'; return;
+        legacyOutputEl.textContent = '—'; legacyOutputEl.className = 'legacy-result empty';
+        legacyNotesEl.textContent = ''; return;
       }
       const data = await fetch('/api/legacy?text=' + encodeURIComponent(text)).then(r => r.json());
       legacyOutputEl.textContent = data.unicode || '—';
       legacyOutputEl.className = data.unicode ? 'legacy-result' : 'legacy-result empty';
+      legacyNotesEl.textContent = legacyNotes(data);
     }, 80);
     legacyInputEl.addEventListener('input', e => updateLegacy(e.target.value));
 
