@@ -74,6 +74,16 @@ result.text                               # 'ਕèਕ'
 result.warnings                           # [ConversionWarning(position=1, char='è', kind='unmapped', ...)]
 ```
 
+`detect_encoding` guesses whether text is `'unicode'`, `'anmollipi'` (GurbaniAkhar family),
+`'latin'` (English or romanised text — don't run it through the legacy converter) or
+`'unknown'`. `detect_lines` returns one `EncodingGuess(label, score)` per line, for pages
+that mix legacy-font verses with romanised headings.
+
+```python
+GurmukhiLegacy.detect_encoding('Awid scu jugwid scu ]')   # 'anmollipi'
+GurmukhiLegacy.detect_encoding('Hanūmān Nāṭak')           # 'latin'
+```
+
 ## Develop
 
 ```bash

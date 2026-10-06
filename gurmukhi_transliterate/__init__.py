@@ -1,6 +1,6 @@
 from .iso15919 import GurmukhiISO15919
 from .practical import GurmukhiPractical
-from .legacy import GurmukhiLegacy, ConversionResult, ConversionWarning
+from .legacy import GurmukhiLegacy, ConversionResult, ConversionWarning, EncodingGuess
 from .romanizer import GurmukhiRomanizer
 from .systems import SYSTEMS, SYSTEM_ORDER, SystemMap
 from .compare import comparison_table, identify_system
@@ -23,6 +23,7 @@ __all__ = [
     "GurmukhiLegacy",
     "ConversionResult",
     "ConversionWarning",
+    "EncodingGuess",
     "GurmukhiRomanizer",
     "SYSTEMS",
     "SYSTEM_ORDER",
