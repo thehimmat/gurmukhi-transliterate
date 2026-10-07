@@ -115,3 +115,31 @@ class TestNoRegressionPractical:
     def test_default_off(self):
         assert GurmukhiPractical.to_practical('ਸਿੰਘ') == 'singha'
         assert GurmukhiPractical.to_practical('ਵਾਹਿਗੁਰੂ') == 'vaahiguroo'
+
+
+# ---------------------------------------------------------------------------
+# #24: a consonant followed by an independent vowel keeps its schwa
+# ---------------------------------------------------------------------------
+
+class TestSchwaBeforeIndependentVowel:
+    @pytest.mark.parametrize('gurmukhi, expected', [
+        ('ਹੋਵਈ', 'hovaī'),
+        ('ਹੋਵੀ', 'hovī'),
+        ('ਭਉ', 'bhau'),
+        ('ਨਿਰਭਉ', 'nirbhau'),   # ਭ keeps its vowel, so R2 deletes ਰ's
+    ])
+    def test_iast(self, gurmukhi, expected):
+        from gurmukhi_transliterate import GurmukhiRomanizer
+        assert GurmukhiRomanizer('iast').romanize(gurmukhi, delete_schwa=True) == expected
+
+    @pytest.mark.parametrize('gurmukhi, expected', [
+        ('ਹੋਵਈ', "hōva'ī"),
+        ('ਨਿਰਭਉ', "nirbha'u"),
+    ])
+    def test_iso_keeps_hiatus_apostrophe(self, gurmukhi, expected):
+        assert iso(gurmukhi) == expected
+
+    def test_hovai_and_hovi_stay_distinct(self):
+        from gurmukhi_transliterate import GurmukhiRomanizer
+        r = GurmukhiRomanizer('sttm')
+        assert r.romanize('ਹੋਵਈ', delete_schwa=True) != r.romanize('ਹੋਵੀ', delete_schwa=True)
