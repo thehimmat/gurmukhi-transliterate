@@ -315,17 +315,23 @@ def match_verse(text: str, top_n: int = 3, min_score: float = MIN_SCORE) -> list
 def to_gurmukhi(text: str) -> str:
     """Return Gurmukhi for each line of *text*.
 
-    Each line is first matched to a canonical verse (match_verse); failing
-    that, it is reversed word by word with a known romanization system
+    Each line is checked against common informal spellings (Waheguru, Sat Sri
+    Akal, …), then matched to a canonical verse (match_verse), and failing
+    both, reversed word by word with a known romanization system
     (reverse_words). Raises UnableToReverse, naming the words that couldn't be
     reversed, rather than guessing.
     """
+    from .informal import reverse_informal
     from .system_reverse import reverse_words
 
     out = []
     for line in text.split('\n'):
         if not line.strip():
             out.append(line)
+            continue
+        informal, _ = reverse_informal(line) if line.isascii() else (None, [])
+        if informal is not None:
+            out.append(informal)
             continue
         matches = match_verse(line, top_n=1)
         if matches:

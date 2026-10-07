@@ -12,6 +12,7 @@ from .reverse import (
 )
 from .verse import Location, UnableToReverse, VerseMatch, match_verse, to_gurmukhi
 from .system_reverse import ReverseWords, WordCandidates, reverse_words
+from .informal import lookup_informal, reverse_informal
 from .matcher import (
     CorpusMatcher,
     MatchResult,
@@ -49,4 +50,6 @@ __all__ = [
     "reverse_words",
     "ReverseWords",
     "WordCandidates",
+    "lookup_informal",
+    "reverse_informal",
 ]

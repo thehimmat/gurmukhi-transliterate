@@ -37,11 +37,16 @@ class TestResult:
         assert reverse_words('Naanak', system='sttm').gurmukhi == 'ਨਾਨਕ'
 
     def test_punctuation_and_numbers(self):
-        # our sttm writes ਹਰਿ as 'hari'; real BaniDB's 'har' is #26
-        assert reverse_words('hari hari ||1||', system='sttm').gurmukhi == 'ਹਰਿ ਹਰਿ ॥੧॥'
+        # real BaniDB drops the final sihari: ਹਰਿ → har (ਹਰਿ outranks ਹਰ by frequency)
+        assert reverse_words('har har ||1||', system='sttm').gurmukhi == 'ਹਰਿ ਹਰਿ ॥੧॥'
 
     def test_banidb_parenthesised_nasal(self):
-        assert reverse_words('a(n)mritu', system='sttm').gurmukhi == 'ਅੰਮ੍ਰਿਤੁ'
+        r = reverse_words('a(n)mrit', system='sttm')
+        assert 'ਅੰਮ੍ਰਿਤੁ' in [c for c, _ in r.words[0].candidates]
+
+    def test_banidb_standalone_word_form(self):
+        # a word on its own keeps its final vowel in BaniDB: ਨਾਮੁ → naamu
+        assert reverse_words('naamu', system='sttm').gurmukhi == 'ਨਾਮੁ'
 
     def test_ik_oankaar(self):
         assert reverse_words('ik oankaar', system='sttm').gurmukhi == 'ੴ'

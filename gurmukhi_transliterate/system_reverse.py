@@ -26,13 +26,15 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from functools import lru_cache
 
+from .informal import lookup_informal, reverse_informal
 from .iso15919 import GurmukhiISO15919
 from .lexicon import load_lexicon
 from .practical import GurmukhiPractical
-from .romanizer import GurmukhiRomanizer
+from .romanizer import _DEDICATED, GurmukhiRomanizer
 from .systems import SYSTEM_ORDER
 
 ALL_SYSTEMS = ('iso15919', 'practical', *SYSTEM_ORDER)
+INFORMAL = 'informal'   # common informal/3HO spellings (informal.py), not a system map
 
 # Which systems to try, in order, given the characters in the input.
 _IPA_CHARS = set('ɪəɑʊɛæɔŋɲɳɽɾɹʋɦʃʈɖʒ')
@@ -40,7 +42,8 @@ _FAMILIES = {
     'ipa': ('banidb_ipa', 'ipa'),
     'diacritics': ('iso15919', 'iast', 'shackle', 'sacred_nitnem', 'dr_sant_singh', 'gursevak'),
     'banidb': ('sttm', 'sttm_legacy', 'practical'),
-    'ascii': ('sttm', 'practical', 'dr_thind', 'dr_sant_singh', 'sttm_legacy', 'gfs', 'gursevak'),
+    'ascii': ('sttm', 'shabados', 'practical', 'dr_thind', 'dr_sant_singh', 'sttm_legacy', 'gfs',
+              'gursevak'),
 }
 
 # words may contain BaniDB's parenthesised nasal, a(n)mrit; other brackets are punctuation
@@ -84,12 +87,20 @@ class _Index:
         lexicon = load_lexicon()
         words = list(lexicon)
         exact: dict[str, Counter] = defaultdict(Counter)
-        for delete_schwa in (False, True):
+        dedicated = system in _DEDICATED
+        # Dedicated engines (BaniDB) ignore delete_schwa but depend on context:
+        # a word mid-line ('naam') differs from the same word alone ('naamu').
+        for delete_schwa in ((False,) if dedicated else (False, True)):
             # one call for the whole lexicon; output words align with input words
             out = _forward(system, ' '.join(words), delete_schwa).split(' ')
             if len(out) != len(words):  # pragma: no cover - defensive
                 out = [_forward(system, w, delete_schwa) for w in words]
             for w, roman in zip(words, out):
+                if roman:
+                    exact[roman][w] = lexicon[w]
+        if dedicated:
+            for w in words:
+                roman = _forward(system, w, False)
                 if roman:
                     exact[roman][w] = lexicon[w]
         lower: dict[str, Counter] = defaultdict(Counter)
@@ -151,17 +162,33 @@ def _candidate_systems(text: str) -> tuple[str, ...]:
     return _FAMILIES['ascii']
 
 
+def _reverse_informal(text: str) -> ReverseWords:
+    gurmukhi, missing = reverse_informal(text)
+    words = [WordCandidates(w, ((g, 0),) if (g := lookup_informal(w)) else ()) for w in text.split()
+             if any(ch.isalpha() for ch in w)]
+    return ReverseWords(INFORMAL, words, gurmukhi, missing)
+
+
 def reverse_words(text: str, system: str | None = None) -> ReverseWords:
     """Reverse romanized *text* word by word using a system's lexicon index.
 
-    With *system* None, candidate systems (chosen from the input's characters)
-    are tried in order until one explains every word; otherwise the one that
-    explains the most words (ties: the higher total frequency) is returned.
+    *system* may also be ``'informal'``: the table of common informal/3HO
+    spellings (Waheguru, Sat Sri Akal, …). With *system* None, plain-ASCII
+    input is first checked against that table, then candidate systems (chosen
+    from the input's characters) are tried in order until one explains every
+    word; otherwise the one that explains the most words (ties: the higher
+    total frequency) is returned.
     """
+    if system == INFORMAL:
+        return _reverse_informal(text)
     if system is not None:
         if system not in ALL_SYSTEMS:
-            raise ValueError(f'unknown system {system!r}; choose from {ALL_SYSTEMS}')
+            raise ValueError(f'unknown system {system!r}; choose from {ALL_SYSTEMS + (INFORMAL,)}')
         return _reverse_with(system, text)
+    if text.isascii():
+        informal = _reverse_informal(text)
+        if informal.gurmukhi is not None:
+            return informal
     best: ReverseWords | None = None
     best_key = (-1.0, -1)
     for s in _candidate_systems(text):

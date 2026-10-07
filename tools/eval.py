@@ -39,7 +39,7 @@ NEAR_LOSSLESS = ('iso15919', 'ipa', 'iast', 'banidb_ipa', 'shackle', 'gursevak',
 GOLD = REPO / 'tests' / 'fixtures' / 'gold'
 
 # Gold scheme column → this repo's matching system (None: not implemented yet)
-SCHEME_SYSTEM = {'banidb': 'sttm', 'banidb_ipa': 'banidb_ipa', 'shabados': None}
+SCHEME_SYSTEM = {'banidb': 'sttm', 'banidb_ipa': 'banidb_ipa', 'shabados': 'shabados'}
 
 
 def load_gold() -> list[dict]:
@@ -216,8 +216,8 @@ def eval_system_reverse(gold: list[dict]) -> dict:
                                'top1': top1, 'top5': top5,
                                'tier': 'near-lossless' if system in NEAR_LOSSLESS else 'lossy'})
     real = []
-    for scheme, system in (('banidb', 'sttm'), ('banidb', None), ('shabados', None),
-                           ('banidb_ipa', 'banidb_ipa')):
+    for scheme, system in (('banidb', 'sttm'), ('banidb', None), ('shabados', 'shabados'),
+                           ('shabados', None), ('banidb_ipa', 'banidb_ipa')):
         found = total = hits = gold_words = 0
         chosen: collections.Counter = collections.Counter()
         for g in gold:

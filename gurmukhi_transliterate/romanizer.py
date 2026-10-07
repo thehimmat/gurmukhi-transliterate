@@ -16,7 +16,18 @@ from __future__ import annotations
 import logging
 from .systems import SYSTEMS, SystemMap
 from ._core import transliterate
+from .banidb import GurmukhiBaniDB
+from .shabados import GurmukhiShabadOS
 from .legacy import ConversionResult
+
+# Systems whose real-world output comes from a dedicated engine rather than the
+# generic map-driven one. These apply their own vowel dropping, so
+# delete_schwa has no effect on them.
+_DEDICATED = {
+    'sttm': GurmukhiBaniDB.to_english,
+    'banidb_ipa': GurmukhiBaniDB.to_ipa,
+    'shabados': GurmukhiShabadOS.to_english,
+}
 
 _logger = logging.getLogger('gurmukhi_transliterate._core')
 
@@ -62,6 +73,9 @@ class GurmukhiRomanizer:
         (bindi → the system's tippi value). Positions index the NFC-normalised
         input.
         """
+        engine = _DEDICATED.get(self._system.id)
+        if engine is not None:
+            return ConversionResult(engine(text), [])
         warnings: list = []
         out = transliterate(text, self._system, delete_schwa=delete_schwa, warnings=warnings)
         return ConversionResult(out, warnings)
