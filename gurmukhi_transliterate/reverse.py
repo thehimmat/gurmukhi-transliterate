@@ -137,7 +137,19 @@ _VOWELS: list[tuple[str, _Vowel]] = [
     ('e', _Vowel('ੇ', 'ਏ')),
     ('o', _Vowel('ੋ', 'ਓ')),
     ('ü', _Vowel('ੁ', 'ਉ')),          # §2 metrical double-pointing, groups with -u
+    ('ï', _Vowel('ਿ', 'ਇ')),          # §2 hiatus i (daïā = ਦਇਆ), groups with -i
 ]
+
+# Homorganic class of each nasal (§5): a nasal heads a nasal group (→ ੰ) only
+# before a stop of its own class; before anything else it is a plain
+# consonant (m + r = ਮ੍ਰ).
+_NASAL_CLASS: dict[str, frozenset[str]] = {
+    'ਙ': frozenset('ਕਖਗਘਙ'),
+    'ਞ': frozenset('ਚਛਜਝਞ'),
+    'ਣ': frozenset('ਟਠਡਢਣ'),
+    'ਨ': frozenset('ਤਥਦਧਨ'),
+    'ਮ': frozenset('ਪਫਬਭਮ'),
+}
 
 _NASALIZATION = 'ṁ'
 
@@ -337,8 +349,9 @@ def reverse_transliterate(roman: str) -> ReverseResult:
                 i += 1
                 continue
 
-        # 2. Homorganic nasal group: nasal + consonant, no vowel → ੰ (§5).
-        if c.is_nasal and nxt_is_cons:
+        # 2. Homorganic nasal group: nasal + same-class consonant, no vowel → ੰ (§5).
+        if (c.is_nasal and nxt_is_cons
+                and nxt.cons.base in _NASAL_CLASS[c.base]):  # type: ignore[union-attr]
             # A geminate nasal (nn, mm, …) is written either ੰ+nasal (§5) or,
             # as the glossary often prints it, a single collapsed nasal (§4).
             # Flag the single-nasal alternative (drop the ੰ) for the matcher.
@@ -390,6 +403,17 @@ def reverse_transliterate(roman: str) -> ReverseResult:
             or _UNASPIRATE_OF.get(nxt.cons.base) == c.base   # type: ignore[union-attr]
         )
         if nxt_is_cons and not c.aspirate_sonorant and not gemination_ahead:
+            if c.is_nasal:
+                # A nasal heading a conjunct is often written geminated with
+                # ṭippī in Gurmukhi (amritu: ਅਮ੍ਰਿਤੁ or ਅੰਮ੍ਰਿਤੁ).
+                ambiguities.append(Ambiguity(
+                    kind='gemination',
+                    source=tok.roman,
+                    chosen=c.base,
+                    alternatives=[_TIPPI + c.base],
+                    start=base_offset,
+                    note='§4/§5: a nasal before a conjunct may be written ੰ+nasal',
+                ))
             out.append(_VIRAMA)
             awaiting_cons = False
             prev_cons_base = None
