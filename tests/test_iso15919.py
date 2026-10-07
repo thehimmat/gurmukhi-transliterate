@@ -116,3 +116,34 @@ class TestVowels:
     ])
     def test_independent_vowels(self, gurmukhi, expected):
         assert t(gurmukhi) == expected
+
+
+class TestIssue20:
+    @pytest.mark.parametrize('gurmukhi', ['ਸਿੱਖ', 'ਕੱ', 'ਸਿੱਖ ਜੀ', 'ਮੁੱਖ', 'ਸੱਚ', 'ਹੱਥ', 'ਲੱਖ'])
+    def test_final_addak_cluster_does_not_crash(self, gurmukhi):
+        t(gurmukhi)
+
+    def test_sikh(self):
+        assert t('ਸਿੱਖ') == 'sikkha'
+
+    @pytest.mark.parametrize('gurmukhi, expected', [('ਸੱਚ', 'sacca'), ('ਹੱਥ', 'hattha')])
+    def test_final_geminate_after_consonant(self, gurmukhi, expected):
+        assert t(gurmukhi) == expected
+        assert t(gurmukhi, delete_schwa=True) == expected[:-1]
+
+    def test_comparison_table_on_sikh(self):
+        from gurmukhi_transliterate import comparison_table
+        assert comparison_table('ਸਿੱਖ')['iso15919'] == 'sikkha'
+
+    @pytest.mark.parametrize('gurmukhi, expected', [
+        ('ਜ਼ੱਮੀਨ', 'zammīna'),
+        ('ਜ਼ੰਮੀਨ', 'zaṃmīna'),
+        ('ਜ਼ਮੀਨ', 'zamīna'),
+        ('ਕਂ', 'kaṁ'),
+    ])
+    def test_marks_around_nukta_letters(self, gurmukhi, expected):
+        assert t(gurmukhi) == expected
+
+    def test_no_collisions_between_nukta_variants(self):
+        outs = {t(w) for w in ('ਜ਼ੱਮੀਨ', 'ਜ਼ੰਮੀਨ', 'ਜ਼ਮੀਨ')}
+        assert len(outs) == 3

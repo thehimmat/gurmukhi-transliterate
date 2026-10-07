@@ -12,6 +12,7 @@ Use cases:
 from typing import Dict
 
 from .schwa import compute_deletions
+from ._tokens import TIPPI, normalize, tokenize
 
 
 class GurmukhiISO15919:
@@ -74,111 +75,71 @@ class GurmukhiISO15919:
         - ੰ (tippi / anusvara)    → ṃ (dot below)
         - ਂ (bindi / chandrabindu) → ṁ (dot above)
         """
+        C = GurmukhiISO15919.CONSONANTS
+        text = normalize(text)
         deletions: set[int] = (
             compute_deletions(
                 text,
-                set(GurmukhiISO15919.CONSONANTS.keys()),
+                set(C.keys()),
                 set(GurmukhiISO15919.VOWEL_DIACRITICS.keys()),
             )
             if delete_schwa
             else set()
         )
+
+        tokens = tokenize(text)
         result = ''
-        i = 0
-        while i < len(text):
-            if text[i] in GurmukhiISO15919.SPECIAL_SYMBOLS:
-                result += GurmukhiISO15919.SPECIAL_SYMBOLS[text[i]]
-                i += 1
+        geminate = False
+        j = 0
+        while j < len(tokens):
+            tok = tokens[j]
+            nxt = tokens[j + 1] if j + 1 < len(tokens) else None
+
+            if tok.kind == 'cons':
+                rom = C.get(tok.text) or C.get(tok.text[0])
+                if rom is None:
+                    geminate = False
+                    j += 1
+                    continue
+                if geminate:
+                    # Aspirates geminate as unaspirated + aspirate: ṭṭh, kkh
+                    result += rom[0] if len(rom) > 1 and rom[1] == 'h' else rom
+                    geminate = False
+                result += rom
+                if nxt is not None and nxt.kind == 'sign':
+                    result += GurmukhiISO15919.VOWEL_DIACRITICS[nxt.text]
+                    j += 2
+                    continue
+                if nxt is not None and nxt.kind == 'virama':
+                    j += 2
+                    continue
+                if nxt is not None and nxt.kind in ('nasal', 'addak'):
+                    result += 'a'
+                elif tok.pos not in deletions:
+                    result += 'a'
+                j += 1
                 continue
 
-            if text[i] in GurmukhiISO15919.PUNCTUATION:
-                result += GurmukhiISO15919.PUNCTUATION[text[i]]
-                i += 1
-                continue
-
-            if text[i] in GurmukhiISO15919.NUMBERS:
-                result += GurmukhiISO15919.NUMBERS[text[i]]
-                i += 1
-                continue
-
-            char = text[i]
-            next_char = text[i + 1] if i + 1 < len(text) else None
-            next_next_char = text[i + 2] if i + 2 < len(text) else None
-
-            # Handle gemination (addak)
-            if next_char == 'ੱ':
-                if i + 2 < len(text):
-                    doubled_char = text[i + 2]
-                    if doubled_char in GurmukhiISO15919.CONSONANTS:
-                        if char in GurmukhiISO15919.CONSONANTS:
-                            result += GurmukhiISO15919.CONSONANTS[char] + 'a'
-                        elif char in GurmukhiISO15919.VOWEL_DIACRITICS:
-                            result += GurmukhiISO15919.VOWEL_DIACRITICS[char]
-                        else:
-                            result += GurmukhiISO15919.VOWELS[char]
-
-                        if doubled_char in GurmukhiISO15919.CONSONANTS and len(GurmukhiISO15919.CONSONANTS[doubled_char]) > 1 and GurmukhiISO15919.CONSONANTS[doubled_char][1] == 'h':
-                            result += GurmukhiISO15919.CONSONANTS[doubled_char][0] + GurmukhiISO15919.CONSONANTS[doubled_char]
-                        else:
-                            result += GurmukhiISO15919.CONSONANTS[doubled_char] + GurmukhiISO15919.CONSONANTS[doubled_char]
-                        doubled_pos = i + 2  # position of the doubled consonant
-                        i += 3
-                        if text[i] not in GurmukhiISO15919.VOWEL_DIACRITICS:
-                            if not delete_schwa or doubled_pos not in deletions:
-                                result += 'a'
-                        continue
-
-            # Handle nasalization
-            if next_char == 'ੰ':  # tippi → anusvara ṃ (dot below)
-                if char in GurmukhiISO15919.CONSONANTS:
-                    result += GurmukhiISO15919.CONSONANTS[char] + 'a'
-                elif char in GurmukhiISO15919.VOWEL_DIACRITICS:
-                    result += GurmukhiISO15919.VOWEL_DIACRITICS[char]
-                else:
-                    result += GurmukhiISO15919.VOWELS[char]
-                result += "ṃ"
-                i += 2
-                continue
-            elif next_char == 'ਂ':  # bindi → chandrabindu ṁ (dot above)
-                if char in GurmukhiISO15919.CONSONANTS:
-                    result += GurmukhiISO15919.CONSONANTS[char]
-                elif char in GurmukhiISO15919.VOWEL_DIACRITICS:
-                    result += GurmukhiISO15919.VOWEL_DIACRITICS[char]
-                else:
-                    result += GurmukhiISO15919.VOWELS[char]
-                result += "ṁ"
-                i += 2
-                continue
-
-            # Handle vowel sequences
-            if result and result[-1] == 'a' and char in GurmukhiISO15919.VOWELS:
-                result += "'" + GurmukhiISO15919.VOWELS[char]
-                i += 1
-                continue
-
-            # Check two-char Persian combinations (base consonant + nukta ਼)
-            # before the single-char lookup, which would match the base alone
-            two_char = text[i:i+2] if i + 1 < len(text) else ''
-            if two_char in GurmukhiISO15919.CONSONANTS:
-                result += GurmukhiISO15919.CONSONANTS[two_char]
-                after = text[i + 2] if i + 2 < len(text) else None
-                if after not in GurmukhiISO15919.VOWEL_DIACRITICS and after != '੍':
-                    if not delete_schwa or i not in deletions:
-                        result += 'a'
-                i += 2
-                continue
-
-            # Process regular characters
-            if char in GurmukhiISO15919.CONSONANTS:
-                result += GurmukhiISO15919.CONSONANTS[char]
-                if next_char not in GurmukhiISO15919.VOWEL_DIACRITICS and next_char != '੍':
-                    if not delete_schwa or i not in deletions:
-                        result += 'a'
-            elif char in GurmukhiISO15919.VOWEL_DIACRITICS:
-                result += GurmukhiISO15919.VOWEL_DIACRITICS[char]
-            elif char in GurmukhiISO15919.VOWELS:
-                result += GurmukhiISO15919.VOWELS[char]
-
-            i += 1
+            geminate = False
+            if tok.kind == 'addak':
+                geminate = nxt is not None and nxt.kind == 'cons'
+            elif tok.kind == 'nasal':
+                # tippi → anusvara ṃ (dot below); bindi → chandrabindu ṁ (dot above)
+                result += 'ṃ' if tok.text == TIPPI else 'ṁ'
+            elif tok.kind == 'sign':
+                result += GurmukhiISO15919.VOWEL_DIACRITICS[tok.text]
+            elif tok.kind == 'vowel' and tok.text in GurmukhiISO15919.VOWELS:
+                vowel = GurmukhiISO15919.VOWELS[tok.text]
+                # Hiatus after an inherent a is marked with an apostrophe: ka'i
+                result += "'" + vowel if result.endswith('a') else vowel
+            elif tok.kind == 'other':
+                ch = tok.text
+                if ch in GurmukhiISO15919.SPECIAL_SYMBOLS:
+                    result += GurmukhiISO15919.SPECIAL_SYMBOLS[ch]
+                elif ch in GurmukhiISO15919.PUNCTUATION:
+                    result += GurmukhiISO15919.PUNCTUATION[ch]
+                elif ch in GurmukhiISO15919.NUMBERS:
+                    result += GurmukhiISO15919.NUMBERS[ch]
+            j += 1
 
         return result

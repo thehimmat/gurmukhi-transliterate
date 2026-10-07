@@ -302,3 +302,52 @@ class TestAddak:
 
     def test_addak_doubles_iast(self):
         assert rom('iast', 'ਪੱਕਾ') == 'pakkā'
+
+
+# --- #21: addak / nasals in any position ------------------------------------
+
+def _shape_cases():
+    from gurmukhi_transliterate import SYSTEMS, SYSTEM_ORDER
+    for sid in SYSTEM_ORDER:
+        m = SYSTEMS[sid]
+        c, vd, vw = m.consonants, m.vowel_diacritics, m.vowels
+        a = vw.get('ਅ') or 'a'
+        cases = [
+            # addak after a vowel sign
+            ('ਸਿੱਖ', [c['ਸ'], vd['ਿ'], c['ਖ'], c['ਖ'], a]),
+            # addak after an independent vowel
+            ('ਇੱਕ', [vw['ਇ'], c['ਕ'], c['ਕ'], a]),
+            # tippi after an independent vowel
+            ('ਅੰਗ', [vw['ਅ'], m.nasal_tippi, c['ਗ'], a]),
+            # bindi after an independent vowel following a sign
+            ('ਕਿਉਂ', [c['ਕ'], vd['ਿ'], vw['ਉ'], m.nasal_bindi]),
+        ]
+        for text, parts in cases:
+            if None in parts:
+                continue  # system has no value for one of the parts
+            yield pytest.param(sid, text, ''.join(parts), id=f'{sid}-{text}')
+
+
+class TestAddakAndNasalsAnywhere:
+    @pytest.mark.parametrize('sid, text, expected', list(_shape_cases()))
+    def test_marks_are_not_dropped(self, sid, text, expected):
+        assert rom(sid, text) == expected
+
+    @pytest.mark.parametrize('sid, text, expected', [
+        ('sttm', 'ਸਿੱਖ', 'sikhkha'),
+        ('shackle', 'ਇੱਕ', 'ikka'),
+        ('sttm', 'ਅੰਗ', 'a(n)ga'),
+        ('sttm', 'ਕਿਉਂ', 'kiu(n)'),
+        ('iast', 'ਆਂਖ', 'āṁkha'),
+    ])
+    def test_issue_rows(self, sid, text, expected):
+        assert rom(sid, text) == expected
+
+    def test_addak_after_nukta_letter_keeps_following_vowel(self):
+        assert rom('sttm', 'ਜ਼ੱਮੀਨ') == 'zammeena'
+
+    def test_precomposed_nukta_input_matches_decomposed(self):
+        assert rom('iast', 'ਸ਼ਾ') == rom('iast', 'ਸ਼ਾ')
+
+    def test_addak_at_end_does_not_crash(self):
+        assert rom('sttm', 'ਕੱ') == 'ka'
