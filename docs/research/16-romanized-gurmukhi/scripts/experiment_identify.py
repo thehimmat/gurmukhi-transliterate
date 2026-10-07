@@ -1,4 +1,8 @@
-"""Baseline accuracy of compare.identify_system on the Japji sample."""
+"""Baseline accuracy of compare.identify_system on the Japji sample.
+
+Measured the token-coverage implementation that #27 replaced; run it at
+commit c45e542 (the internals it imports no longer exist).
+"""
 from common import *
 from gurmukhi_transliterate.compare import identify_system, _tokenise, _TOKEN_INDEX
 from collections import Counter, defaultdict

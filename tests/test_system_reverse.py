@@ -79,3 +79,19 @@ class TestToGurmukhiFallback:
     def test_unknown_word_raises_and_names_it(self):
         with pytest.raises(UnableToReverse, match='xyzzyq'):
             to_gurmukhi('naanak xyzzyq')
+
+    def test_english_refused_up_front(self):
+        with pytest.raises(UnableToReverse, match='English'):
+            to_gurmukhi('The English translation of the text')
+
+
+class TestRankedAutoSelect:
+    LINE = 'ਕਿਵ ਸਚਿਆਰਾ ਹੋਈਐ ਕਿਵ ਕੂੜੈ ਤੁਟੈ ਪਾਲਿ'
+
+    @pytest.mark.parametrize('system', ALL_SYSTEMS)
+    def test_identified_system_is_used(self, system):
+        roman = forward(system, self.LINE)
+        r = reverse_words(roman)
+        assert not r.missing
+        # systems that write this line identically are indistinguishable
+        assert forward(r.system, self.LINE) == roman, (system, r.system)

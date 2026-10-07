@@ -6,7 +6,7 @@ Usage:
     python tools/eval.py --write docs/eval/baseline.md
     python tools/eval.py --dakshina DIR       # also score the Dakshina pa test set
 
-The numbers are a baseline for #16 phases 2-6, not a pass/fail gate.
+The numbers track #16 phases 2-6; they are not a pass/fail gate.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-from gurmukhi_transliterate import GurmukhiLegacy, GurmukhiRomanizer, identify_system  # noqa: E402
+from gurmukhi_transliterate import GurmukhiLegacy, GurmukhiRomanizer, detect_latin, identify_system  # noqa: E402
 from gurmukhi_transliterate.lexicon import load_lexicon, words  # noqa: E402
 from gurmukhi_transliterate.matcher import candidate_spellings  # noqa: E402
 from gurmukhi_transliterate.reverse import reverse_transliterate  # noqa: E402
@@ -97,23 +97,57 @@ def _unique_first(ranked: list[dict]) -> str | None:
     return ranked[0]['system']
 
 
+def _bucket(text: str) -> str:
+    return '5+ words' if len(roman_words(text)) >= 5 else '1-4 words'
+
+
+def eval_latin(gold: list[dict], english: list[str], punjabi: list[str]) -> list[dict]:
+    """English vs romanized (detect_latin), per line, by line length."""
+    cases = [('BaniDB English', 'romanized', [g['banidb'] for g in gold]),
+             ('Shabad OS English', 'romanized', [g['shabados'] for g in gold]),
+             ('BaniDB IPA', 'romanized', [g['banidb_ipa'] for g in gold]),
+             ('modern Punjabi (informal)', 'romanized', punjabi),
+             ('English', 'english', english)]
+    out = []
+    for name, expected, lines in cases:
+        by: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
+        for l in lines:
+            by[_bucket(l)][detect_latin(l).label] += 1
+        for bucket in sorted(by):
+            labels = by[bucket]
+            out.append({'input': name, 'expected': expected, 'bucket': bucket, 'n': sum(labels.values()),
+                        'correct': labels[expected], 'labels': dict(labels)})
+    return out
+
+
 def eval_identify(gold: list[dict], english: list[str]) -> dict:
+    """Unique top-1, equivalence class (the true system is first or can't be
+    told apart from the first) and top 3, by line length."""
     schemes = []
     for scheme, system in SCHEME_SYSTEM.items():
-        firsts = collections.Counter()
-        unique = top3 = 0
+        by: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
         for g in gold:
-            ranked = identify_system(g[scheme], top_n=13)
-            firsts[ranked[0]['system']] += 1
-            if system:
-                unique += _unique_first(ranked) == system
-                top3 += system in [r['system'] for r in ranked[:3]]
-        schemes.append({'scheme': scheme, 'system': system, 'n': len(gold), 'unique_top1': unique,
-                        'top3': top3, 'most_common_top1': firsts.most_common(3)})
-    eng = [identify_system(l)[0]['confidence'] for l in english]
+            ranked = identify_system(g[scheme], top_n=len(ALL_SYSTEMS) + 1)
+            c = by[_bucket(g[scheme])]
+            c['n'] += 1
+            c['first:' + ranked[0]['system']] += 1
+            c['unique'] += _unique_first(ranked) == system
+            c['in_class'] += any(r['system'] == system and r['equivalent'] for r in ranked)
+            c['top3'] += system in [r['system'] for r in ranked[:3]]
+        for bucket in sorted(by):
+            c = by[bucket]
+            firsts = collections.Counter({k[6:]: v for k, v in c.items() if k.startswith('first:')})
+            schemes.append({'scheme': scheme, 'system': system, 'bucket': bucket, 'n': c['n'],
+                            'unique_top1': c['unique'], 'in_class': c['in_class'], 'top3': c['top3'],
+                            'most_common_top1': firsts.most_common(3)})
+    # names-only lines (Guru Gobind Singh) are real informal spellings: counted apart
+    informal = [l for l in english if identify_system(l)[0]['system'] == 'informal']
+    rest = [l for l in english if l not in informal]
+    eng = [identify_system(l)[0]['confidence'] for l in rest]
+    with_english = sum(identify_system(l, include_english=True)[0]['system'] == 'english' for l in rest)
     return {'schemes': schemes,
-            'english': {'n': len(eng), 'mean_top_conf': sum(eng) / len(eng),
-                        'conf_ge_0_5': sum(c >= 0.5 for c in eng)}}
+            'english': {'n': len(eng), 'informal': len(informal), 'mean_top_conf': sum(eng) / len(eng),
+                        'conf_ge_0_5': sum(c >= 0.5 for c in eng), 'english_first': with_english}}
 
 
 def eval_forward(gold: list[dict]) -> list[dict]:
@@ -278,19 +312,28 @@ def report(dakshina: Path | None = None, limit: int | None = None) -> str:
         md.append(f"| {r['input']} | `{r['expected']}` | {pct(r['correct'], r['n'])} | "
                   + ', '.join(f'{k} {v}' for k, v in sorted(r['labels'].items())) + ' |')
 
+    md += ['\n## English vs romanized Gurmukhi (`detect_latin`, per line)\n',
+           '| input | length | expected | correct | labels |', '|---|---|---|---|---|']
+    for r in eval_latin(gold, english, load_punjabi()):
+        md.append(f"| {r['input']} | {r['bucket']} | `{r['expected']}` | {pct(r['correct'], r['n'])} | "
+                  + ', '.join(f'{k} {v}' for k, v in sorted(r['labels'].items())) + ' |')
+    md.append('\n`unknown` is an abstention (too little evidence, e.g. names only), not an error.')
+
     ident = eval_identify(gold, english)
     md += ['\n## System identification (`identify_system`, per line)\n',
-           '| gold scheme | repo system | unique top-1 | in top 3 | most common top-1 |',
-           '|---|---|---|---|---|']
+           '"Equivalence class": the true system is ranked first or flagged `equivalent` to the first '
+           '(the line reads the same in both).\n',
+           '| gold scheme | repo system | length | unique top-1 | equivalence class | in top 3 | most common top-1 |',
+           '|---|---|---|---|---|---|---|']
     for r in ident['schemes']:
-        sys_ = f"`{r['system']}`" if r['system'] else 'none yet'
-        u = pct(r['unique_top1'], r['n']) if r['system'] else 'n/a'
-        t = pct(r['top3'], r['n']) if r['system'] else 'n/a'
         common = ', '.join(f'{s} {n}' for s, n in r['most_common_top1'])
-        md.append(f"| {r['scheme']} | {sys_} | {u} | {t} | {common} |")
+        md.append(f"| {r['scheme']} | `{r['system']}` | {r['bucket']} | {pct(r['unique_top1'], r['n'])} | "
+                  f"{pct(r['in_class'], r['n'])} | {pct(r['top3'], r['n'])} | {common} |")
     e = ident['english']
-    md.append(f"\nEnglish lines (should be rejected; there is no reject option yet): mean top confidence "
-              f"{e['mean_top_conf']:.2f}, {e['conf_ge_0_5']}/{e['n']} score ≥ 0.5.")
+    md.append(f"\nEnglish lines ({e['informal']} more are names only, e.g. \"Guru Gobind Singh\", and rank "
+              f"`informal` first, correctly): mean top system confidence {e['mean_top_conf']:.2f}, "
+              f"{e['conf_ge_0_5']}/{e['n']} score ≥ 0.5 (false positives); with `include_english=True`, "
+              f"`english` ranks first on {e['english_first']}/{e['n']}.")
 
     md += ['\n## Forward fidelity (our romanizer vs the scheme\'s own output)\n',
            '| repo system | gold scheme | exact lines | words matched |', '|---|---|---|---|']

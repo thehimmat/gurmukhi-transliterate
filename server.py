@@ -485,7 +485,7 @@ HTML = """<!DOCTYPE html>
     identifyBtn.addEventListener('click', async () => {
       const text = identifyInput.value.trim();
       if (!text) return;
-      const res = await fetch('/api/identify?text=' + encodeURIComponent(text));
+      const res = await fetch('/api/identify?include_english=1&text=' + encodeURIComponent(text));
       const data = await res.json();
       identifyResults.innerHTML = data.map(r =>
         `<div class="id-row">
@@ -561,7 +561,8 @@ class Handler(BaseHTTPRequestHandler):
 
         elif path == "/api/identify":
             text = params.get("text", [""])[0]
-            results = identify_system(text)
+            include_english = params.get("include_english", [""])[0] in ("1", "true")
+            results = identify_system(text, include_english=include_english)
             self.send_json(results)
 
         elif path == "/api/legacy":

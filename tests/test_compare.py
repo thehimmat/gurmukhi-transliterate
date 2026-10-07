@@ -1,5 +1,7 @@
 """Tests for comparison_table and identify_system."""
 
+import pytest
+
 from gurmukhi_transliterate import comparison_table, identify_system, SYSTEMS, SYSTEM_ORDER
 
 
@@ -81,3 +83,49 @@ class TestIdentifySystem:
     def test_empty_input(self):
         results = identify_system('')
         assert results == []
+
+
+# --- #27: likelihood-based identification ------------------------------------
+
+def _gold():
+    import csv, pathlib
+    path = pathlib.Path(__file__).parent / 'fixtures' / 'gold' / 'lines.tsv'
+    with open(path, encoding='utf-8', newline='') as f:
+        return list(csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, escapechar='\\'))
+
+
+class TestIdentifyLikelihood:
+    @pytest.mark.parametrize('scheme, system, top1', [('banidb', 'sttm', 0.8), ('shabados', 'shabados', 0.85),
+                                                      ('banidb_ipa', 'banidb_ipa', 0.95)])
+    def test_true_system_on_real_lines(self, scheme, system, top1):
+        rows = [r for r in _gold() if len(r[scheme].split()) >= 5]
+        first = in_class = 0
+        for r in rows:
+            ranked = identify_system(r[scheme], top_n=20)
+            first += ranked[0]['system'] == system
+            in_class += any(d['system'] == system and d['equivalent'] for d in ranked)
+        assert first / len(rows) >= top1, f'{scheme}: top-1 {first}/{len(rows)}'
+        assert in_class / len(rows) >= 0.95, f'{scheme}: equivalence class {in_class}/{len(rows)}'
+
+    def test_identical_outputs_are_equivalent(self):
+        from gurmukhi_transliterate import GurmukhiRomanizer, GurmukhiISO15919
+        text = 'ਸਤਿਗੁਰ ਪ੍ਰਸਾਦਿ ਨਾਮੁ'
+        assert GurmukhiRomanizer('iast').romanize(text) == GurmukhiISO15919.to_phonetic(text)
+        ranked = identify_system(GurmukhiRomanizer('iast').romanize(text), top_n=16)
+        eq = {r['system'] for r in ranked if r['equivalent']}
+        assert {'iast', 'iso15919'} <= eq
+
+    def test_english_gets_low_confidence(self):
+        ranked = identify_system('The quick brown fox jumps over the lazy dog')
+        assert all(r['confidence'] < 0.5 for r in ranked)
+
+    def test_english_can_be_ranked(self):
+        ranked = identify_system('The quick brown fox jumps over the lazy dog', include_english=True)
+        assert ranked[0]['system'] == 'english'
+
+    def test_informal_phrase(self):
+        assert identify_system('Waheguru Ji Ka Khalsa Waheguru Ji Ki Fateh')[0]['system'] == 'informal'
+
+    def test_case_signals_kept(self):
+        # BaniDB's capital retroflexes point at sttm
+        assert identify_system('kooRai tuTai paal')[0]['system'] == 'sttm'

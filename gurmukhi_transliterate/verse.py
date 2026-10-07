@@ -319,9 +319,11 @@ def to_gurmukhi(text: str) -> str:
     Akal, …), then matched to a canonical verse (match_verse), and failing
     both, reversed word by word with a known romanization system
     (reverse_words). Raises UnableToReverse, naming the words that couldn't be
-    reversed, rather than guessing.
+    reversed, rather than guessing; a line that reads as English (detect_latin)
+    is refused before any word-by-word attempt.
     """
     from .informal import reverse_informal
+    from .language import detect_latin
     from .system_reverse import reverse_words
 
     out = []
@@ -337,6 +339,9 @@ def to_gurmukhi(text: str) -> str:
         if matches:
             out.append(matches[0].gurmukhi)
             continue
+        if detect_latin(line).label == 'english':
+            raise UnableToReverse(f'unable to reverse transliterate {line!r}: it looks like English, '
+                                  'not romanized Gurmukhi')
         words = reverse_words(line)
         if words.gurmukhi is None:
             raise UnableToReverse(
