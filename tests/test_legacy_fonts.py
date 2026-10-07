@@ -1,4 +1,4 @@
-"""Asees and Joy (typewriter-layout) legacy fonts, encoding detection and font hints (#19)."""
+"""Asees, Joy and AnandpurSahib legacy fonts, encoding detection and font hints (#19)."""
 
 import pathlib
 
@@ -8,7 +8,8 @@ from gurmukhi_transliterate import GurmukhiLegacy, conversion_report
 from gurmukhi_transliterate.legacy import ENCODINGS
 
 FIXTURES = pathlib.Path(__file__).parent / 'fixtures' / 'legacy'
-CASES = [('chandi_charitar', 'joy'), ('gur_sobha', 'asees'), ('gur_sobha_joy', 'joy')]
+CASES = [('chandi_charitar', 'joy'), ('gur_sobha', 'asees'), ('gur_sobha_joy', 'joy'),
+         ('zafarnama', 'anandpursahib')]
 
 
 def _pairs(name, encoding):
@@ -31,11 +32,12 @@ class TestFixtures:
             assert not result.warnings, legacy
 
     @pytest.mark.parametrize('name, encoding', CASES)
-    def test_whole_text_detected_as_typewriter_layout(self, name, encoding):
+    def test_whole_text_detected(self, name, encoding):
         text = '\n'.join(l for l, _ in _pairs(name, encoding))
         # Asees and Joy share their letter keys; text without Joy's few
         # distinct keys may read as either.
-        assert GurmukhiLegacy.detect_encoding(text) in ('asees', 'joy')
+        family = {'asees', 'joy'} if encoding in ('asees', 'joy') else {encoding}
+        assert GurmukhiLegacy.detect_encoding(text) in family
 
 
 class TestAsees:
@@ -71,9 +73,31 @@ class TestJoy:
         assert convert(legacy, 'joy') == expected
 
 
+class TestAnandpurSahib:
+    @pytest.mark.parametrize('legacy, expected', [
+        ('pµj;bI', 'ਪੰਜਾਬੀ'),          # the published example
+        ('b<iSMdh', 'ਬਖ਼ਸ਼ਿੰਦਹ'),       # sihari typed first, nukta letters
+        ('am"', 'ਅਮਾਂ'),               # " is kanna + bindi
+        ("XI'", 'ਈਂ'),                 # ੲ + ੀ → ਈ; ' is bindi
+        ('aESo', 'ਐਸ਼ੋ'),              # ਅ + ੈ → ਐ
+        ('kPule', 'ਕਉਲੇ'),            # P is ੳ
+        ('mohLmd', 'ਮੋਹੱਮਦ'),          # L is addak
+        ('rOSn', 'ਰੌਸ਼ਨ'),
+        ('AmdMd', 'ਆਮਦੰਦ'),
+        ('_', 'ਓ'),
+    ])
+    def test_words(self, legacy, expected):
+        assert convert(legacy, 'anandpursahib') == expected
+
+    def test_unseen_keys_are_reported_not_guessed(self):
+        # the Zafarnama never uses ਟ ਡ ਣ …, so their keys aren't mapped yet
+        result = GurmukhiLegacy.convert('kT', 'anandpursahib')
+        assert [w.char for w in result.warnings] == ['T']
+
+
 class TestEncodingChoice:
     def test_encodings(self):
-        assert ENCODINGS == ('anmollipi', 'asees', 'joy')
+        assert ENCODINGS == ('anmollipi', 'asees', 'joy', 'anandpursahib')
 
     def test_unknown_encoding(self):
         with pytest.raises(ValueError, match='asees'):
@@ -89,6 +113,7 @@ class TestEncodingChoice:
 
     @pytest.mark.parametrize('font, encoding', [
         ('CKPHAK+Asees', 'asees'), ('Joy', 'joy'), ('GurbaniAkharThick', 'anmollipi'),
+        ('GLAJKC+AnandpurSahib', 'anandpursahib'),
         ('CKPPLH+GurbaniLipi', 'anmollipi'), ('AnmolLipi Bold', 'anmollipi'), ('Prabhki', 'anmollipi'),
         ('MSTT31c5cb', None), ('TimesNewRoman', None),
     ])

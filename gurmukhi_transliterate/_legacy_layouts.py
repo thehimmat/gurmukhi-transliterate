@@ -63,3 +63,17 @@ JOY_KEYS = {
 }
 # the 1990s Chandi Charitar font writes ੍ਯ as ¤ before ਯ (Joy's ¤ alone is ਕੇ)
 JOY_COMBOS = {'\xa4:': '੍ਯ'}
+
+# AnandpurSahib (Maboli Systems, 1992): a phonetic layout. Read off a 2005
+# Zafarnama PDF by aligning each verse with the Dasam Granth text, plus a
+# published example (ਪੰਜਾਬੀ = 'pµj;bI'). The Zafarnama is Persian, so it never
+# uses ਟ ਠ ਡ ਢ ਣ ਖ ਘ ਙ ਛ ਝ ਞ ਥ ਧ ਭ: those keys are unknown and are reported
+# as unmapped rather than guessed.
+ANANDPUR_KEYS = {
+    'k': 'ਕ', '<': 'ਖ਼', 'g': 'ਗ', 'G': 'ਗ਼', 'c': 'ਚ', 'j': 'ਜ', 'J': 'ਜ਼', 't': 'ਤ', 'd': 'ਦ',
+    'n': 'ਨ', 'p': 'ਪ', 'f': 'ਫ਼', 'F': 'ਫ਼', 'b': 'ਬ', 'm': 'ਮ', 'y': 'ਯ', 'r': 'ਰ', 'l': 'ਲ',
+    'v': 'ਵ', 's': 'ਸ', 'S': 'ਸ਼', 'h': 'ਹ', 'x': 'ੜ',  # ? x seen once (ਬੀਰੜ)
+    'a': 'ਅ', 'A': 'ਆ', 'X': 'ੲ', 'P': 'ੳ', '_': 'ਓ',
+    'i': 'ਿ', ';': 'ਾ', 'I': 'ੀ', 'u': 'ੁ', 'U': 'ੂ', 'e': 'ੇ', 'E': 'ੈ', 'o': 'ੋ', 'O': 'ੌ',
+    'M': 'ੰ', 'µ': 'ੰ', "'": 'ਂ', '"': 'ਾਂ', 'L': 'ੱ',
+}
