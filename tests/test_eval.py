@@ -17,9 +17,9 @@ def ev():
 
 
 def test_report_sections(ev):
-    md = ev.report()
+    md = ev.report(limit=20)
     for heading in ('Encoding detection', 'System identification', 'Forward fidelity',
-                    'Reverse transliteration', 'Lexicon coverage'):
+                    'Reverse transliteration', 'Verse matching', 'Lexicon coverage'):
         assert f'## {heading}' in md
 
 

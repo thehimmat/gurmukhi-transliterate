@@ -10,6 +10,7 @@ from .reverse import (
     ReverseResult,
     Ambiguity,
 )
+from .verse import Location, UnableToReverse, VerseMatch, match_verse, to_gurmukhi
 from .matcher import (
     CorpusMatcher,
     MatchResult,
@@ -39,4 +40,9 @@ __all__ = [
     "MatchResult",
     "Candidate",
     "candidate_spellings",
+    "match_verse",
+    "to_gurmukhi",
+    "VerseMatch",
+    "Location",
+    "UnableToReverse",
 ]

@@ -15,8 +15,10 @@ import argparse
 import collections
 import csv
 import datetime
+import statistics
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -26,6 +28,7 @@ from gurmukhi_transliterate import GurmukhiLegacy, GurmukhiRomanizer, identify_s
 from gurmukhi_transliterate.lexicon import load_lexicon, words  # noqa: E402
 from gurmukhi_transliterate.matcher import candidate_spellings  # noqa: E402
 from gurmukhi_transliterate.reverse import reverse_transliterate  # noqa: E402
+from gurmukhi_transliterate.verse import _corpus, match_verse  # noqa: E402
 
 GOLD = REPO / 'tests' / 'fixtures' / 'gold'
 
@@ -40,6 +43,11 @@ def load_gold() -> list[dict]:
 
 def load_english() -> list[str]:
     return [l for l in (GOLD / 'english.txt').read_text(encoding='utf-8').splitlines() if l.strip()]
+
+
+def load_punjabi() -> list[str]:
+    return [l for l in (GOLD / 'punjabi_romanized.txt').read_text(encoding='utf-8').splitlines()
+            if l.strip()]
 
 
 def roman_words(text: str) -> list[str]:
@@ -138,6 +146,49 @@ def eval_reverse(gold: list[dict]) -> list[dict]:
     return out
 
 
+def eval_verse(gold: list[dict], english: list[str], punjabi: list[str]) -> dict:
+    """Verse matching: top-1/top-3 per input scheme, partial lines, abstention
+    on non-Gurbani input, latency. Top-1 counts a hit when the gold line is
+    among the locations of the best match (repeated lines share one match)."""
+    t0 = time.perf_counter()
+    _corpus()
+    build = time.perf_counter() - t0
+    times: list[float] = []
+
+    def run(text: str, n: int = 3):
+        t = time.perf_counter()
+        ms = match_verse(text, top_n=n)
+        times.append(time.perf_counter() - t)
+        return ms
+
+    def ids(m):
+        return {loc.id for loc in m.locations}
+
+    schemes = []
+    for scheme in ('banidb', 'shabados', 'gurbaniakhar', 'gurmukhi', 'banidb_ipa'):
+        top1 = top3 = 0
+        for g in gold:
+            ms = run(g[scheme])
+            top1 += bool(ms) and g['id'] in ids(ms[0])
+            top3 += any(g['id'] in ids(m) for m in ms)
+        schemes.append({'scheme': scheme, 'n': len(gold), 'top1': top1, 'top3': top3})
+    partial = [g for g in gold if len(g['banidb'].split()) >= 6]
+    partial_hits = 0
+    for g in partial:
+        w = g['banidb'].split()
+        ms = run(' '.join(w[:max(4, len(w) * 6 // 10)]))
+        partial_hits += bool(ms) and g['id'] in ids(ms[0])
+    return {
+        'schemes': schemes,
+        'partial': {'n': len(partial), 'top1': partial_hits},
+        'false_accept': {'punjabi': (sum(bool(run(l)) for l in punjabi), len(punjabi)),
+                         'english': (sum(bool(run(l)) for l in english), len(english))},
+        'latency_ms': {'median': 1000 * statistics.median(times),
+                       'p95': 1000 * sorted(times)[int(0.95 * len(times))]},
+        'build_s': build,
+    }
+
+
 def eval_lexicon(gold: list[dict]) -> dict:
     lex, sggs = load_lexicon(), load_lexicon(['sggs'])
     gw = [w for g in gold for w in words(g['gurmukhi'])]
@@ -164,8 +215,8 @@ def eval_dakshina(path: Path) -> dict:
 # Report
 # ---------------------------------------------------------------------------
 
-def report(dakshina: Path | None = None) -> str:
-    gold, english = load_gold(), load_english()
+def report(dakshina: Path | None = None, limit: int | None = None) -> str:
+    gold, english = load_gold()[:limit], load_english()
     commit = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], cwd=REPO,
                             capture_output=True, text=True).stdout.strip() or 'unknown'
     md = [f'# Evaluation baseline\n',
@@ -205,6 +256,17 @@ def report(dakshina: Path | None = None) -> str:
         md.append(f"| {r['engine']} | {r['scheme']} | {pct(r['exact'], r['words'])} | "
                   f"{pct(r['in_candidates'], r['words'])} |")
 
+    vm = eval_verse(gold, english, load_punjabi())
+    md += ['\n## Verse matching (`match_verse`, per line)\n',
+           '| input scheme | top-1 | top-3 |', '|---|---|---|']
+    for r in vm['schemes']:
+        md.append(f"| {r['scheme']} | {pct(r['top1'], r['n'])} | {pct(r['top3'], r['n'])} |")
+    fp, fe = vm['false_accept']['punjabi'], vm['false_accept']['english']
+    md.append(f"\nPartial lines (first ~60% of BaniDB words): top-1 {pct(vm['partial']['top1'], vm['partial']['n'])}. "
+              f"False accepts: romanized modern Punjabi {fp[0]}/{fp[1]}, English {fe[0]}/{fe[1]}. "
+              f"Latency median {vm['latency_ms']['median']:.1f} ms, p95 {vm['latency_ms']['p95']:.1f} ms; "
+              f"index build on first use {vm['build_s']:.1f} s.")
+
     lx = eval_lexicon(gold)
     md += ['\n## Lexicon coverage\n',
            f"{pct(lx['in_lexicon'], lx['words'])} of gold Gurmukhi words are in the bundled lexicon "
@@ -223,8 +285,9 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--write', type=Path, help='also write the report to this file')
     ap.add_argument('--dakshina', type=Path, help='Dakshina dataset dir (or the pa test TSV)')
+    ap.add_argument('--limit', type=int, help='use only the first N gold lines (quick check)')
     args = ap.parse_args()
-    md = report(args.dakshina)
+    md = report(args.dakshina, args.limit)
     print(md)
     if args.write:
         args.write.parent.mkdir(parents=True, exist_ok=True)
