@@ -14,8 +14,8 @@ romanization, and **legacy** font conversion. A small Python library with a matc
     Gursevak, **Shackle**, IPA, …) via `GurmukhiRomanizer`
   - **reverse** direction: `reverse_transliterate` / `CorpusMatcher` turn
     Shackle romanization back into Gurmukhi (see below)
-- `api/`: serverless endpoints (transliterate, compare, identify, legacy) for Vercel
-- `index.html`: a minimal browser demo
+- `api/`: serverless endpoints (transliterate, other, compare, identify, legacy, systems) for Vercel
+- `index.html`: the browser demo (the only copy: `server.py` serves it locally, Vercel in production)
 - `tests/`: unit tests for each transliterator
 
 ## Reverse transliteration (Shackle → Gurmukhi)
@@ -220,6 +220,16 @@ read as English, and `reverse_words` tries systems in `identify_system`'s order.
 pip install -e ".[dev]"
 pytest
 python tools/eval.py          # scores against real romanized text; see docs/eval/baseline.md
+python server.py              # the demo at http://localhost:3005, same page and API as Vercel
+```
+
+`tests/test_demo.py` checks that every endpoint the demo calls exists locally and on
+Vercel, and drives each panel in a headless browser. The browser part needs Playwright
+and is skipped without it:
+
+```bash
+pip install -e ".[dev,browser]"
+python -m playwright install chromium   # or set CHROMIUM=/path/to/chromium
 ```
 
 ### Bundled word list
