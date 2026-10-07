@@ -29,6 +29,12 @@ from gurmukhi_transliterate.lexicon import load_lexicon, words  # noqa: E402
 from gurmukhi_transliterate.matcher import candidate_spellings  # noqa: E402
 from gurmukhi_transliterate.reverse import reverse_transliterate  # noqa: E402
 from gurmukhi_transliterate.verse import _corpus, match_verse  # noqa: E402
+from gurmukhi_transliterate.system_reverse import ALL_SYSTEMS, _forward, reverse_words  # noqa: E402
+from gurmukhi_transliterate.reverse import shackle_to_gurmukhi  # noqa: E402
+
+# Candidates per word measured in docs/research/16-romanized-gurmukhi (≤ ~1.4 = near-lossless)
+NEAR_LOSSLESS = ('iso15919', 'ipa', 'iast', 'banidb_ipa', 'shackle', 'gursevak',
+                 'sacred_nitnem', 'dr_sant_singh')
 
 GOLD = REPO / 'tests' / 'fixtures' / 'gold'
 
@@ -189,6 +195,49 @@ def eval_verse(gold: list[dict], english: list[str], punjabi: list[str]) -> dict
     }
 
 
+def eval_system_reverse(gold: list[dict]) -> dict:
+    """Word-level reverse via each system's lexicon index (reverse_words).
+
+    Round trip: gold Gurmukhi words → our forward romanizer → reverse; this
+    checks the engine, not real-world input. Real input: the schemes' own
+    romanizations of the gold lines, reversed word by word."""
+    vocab = sorted({w for g in gold for w in words(g['gurmukhi'])})
+    round_trip = []
+    for system in ALL_SYSTEMS:
+        for delete_schwa in (False, True):
+            romans = _forward(system, ' '.join(vocab), delete_schwa).split(' ')
+            top1 = top5 = 0
+            for w, roman in zip(vocab, romans):
+                cands = [c for c, _ in reverse_words(roman, system=system).words[0].candidates] \
+                    if roman else []
+                top1 += bool(cands) and cands[0] == w
+                top5 += w in cands[:5]
+            round_trip.append({'system': system, 'delete_schwa': delete_schwa, 'n': len(vocab),
+                               'top1': top1, 'top5': top5,
+                               'tier': 'near-lossless' if system in NEAR_LOSSLESS else 'lossy'})
+    real = []
+    for scheme, system in (('banidb', 'sttm'), ('banidb', None), ('shabados', None),
+                           ('banidb_ipa', 'banidb_ipa')):
+        found = total = hits = gold_words = 0
+        chosen: collections.Counter = collections.Counter()
+        for g in gold:
+            r = reverse_words(g[scheme], system=system)
+            chosen[r.system] += 1
+            total += len(r.words)
+            found += len(r.words) - len(r.missing)
+            gw = list(words(g['gurmukhi']))
+            gold_words += len(gw)
+            hits += overlap([w.best for w in r.words if w.best], gw)
+        real.append({'scheme': scheme, 'system': system or 'auto', 'found': found, 'words': total,
+                     'hits': hits, 'gold_words': gold_words, 'chosen': chosen.most_common(2)})
+    shackle_romans = _forward('shackle', ' '.join(vocab), False).split(' ')
+    old = sum(shackle_to_gurmukhi(r) == w for w, r in zip(vocab, shackle_romans))
+    return {'round_trip': round_trip, 'real': real,
+            'shackle': {'n': len(vocab), 'rule_based': old,
+                        'index': next(r['top1'] for r in round_trip
+                                      if r['system'] == 'shackle' and not r['delete_schwa'])}}
+
+
 def eval_lexicon(gold: list[dict]) -> dict:
     lex, sggs = load_lexicon(), load_lexicon(['sggs'])
     gw = [w for g in gold for w in words(g['gurmukhi'])]
@@ -266,6 +315,30 @@ def report(dakshina: Path | None = None, limit: int | None = None) -> str:
               f"False accepts: romanized modern Punjabi {fp[0]}/{fp[1]}, English {fe[0]}/{fe[1]}. "
               f"Latency median {vm['latency_ms']['median']:.1f} ms, p95 {vm['latency_ms']['p95']:.1f} ms; "
               f"index build on first use {vm['build_s']:.1f} s.")
+
+    sr = eval_system_reverse(gold)
+    md += ['\n## System-based reverse (`reverse_words`, word level)\n',
+           'Round trip: gold words → our forward romanizer → reverse. This checks the engine '
+           'and the index, not real-world input.\n',
+           '| system | tier | exact (top-1) | in top 5 | exact, schwa deleted | in top 5, schwa deleted |',
+           '|---|---|---|---|---|---|']
+    by = collections.defaultdict(dict)
+    for r in sr['round_trip']:
+        by[(r['system'], r['tier'])][r['delete_schwa']] = r
+    for (system, tier), d in by.items():
+        a, b = d[False], d[True]
+        md.append(f"| `{system}` | {tier} | {pct(a['top1'], a['n'])} | {pct(a['top5'], a['n'])} | "
+                  f"{pct(b['top1'], b['n'])} | {pct(b['top5'], b['n'])} |")
+    md += ['\nReal input (the schemes\' own romanizations, reversed word by word):\n',
+           '| input scheme | system | words found | gold words recovered | system chosen |',
+           '|---|---|---|---|---|']
+    for r in sr['real']:
+        md.append(f"| {r['scheme']} | {r['system']} | {pct(r['found'], r['words'])} | "
+                  f"{pct(r['hits'], r['gold_words'])} | "
+                  + ', '.join(f'{s} {n}' for s, n in r['chosen']) + ' |')
+    sh = sr['shackle']
+    md.append(f"\nShackle round trip, exact words: rule-based `reverse_transliterate` "
+              f"{pct(sh['rule_based'], sh['n'])}, lexicon index {pct(sh['index'], sh['n'])}.")
 
     lx = eval_lexicon(gold)
     md += ['\n## Lexicon coverage\n',

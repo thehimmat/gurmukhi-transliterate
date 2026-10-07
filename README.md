@@ -115,11 +115,35 @@ to_gurmukhi('hukam rajaiee chalanaa naanak likhiaa naal')   # 'ਹੁਕਮਿ �
 to_gurmukhi('mera phone kharab ho gaya')                    # raises UnableToReverse
 ```
 
+`to_gurmukhi` falls back to word-by-word reverse (below) for lines that aren't verses.
+
 On real romanized lines it gets about 99.5% top-1 and 100% top-3. Lines of three
 or more words can match a half-line (the start or end of a verse); shorter
 headings must match a whole line. The index is built on first use, which takes
 a few seconds; after that a query takes about 10 ms. Numbers and method are in
 `docs/eval/baseline.md`.
+
+## Word-by-word reverse for a known system
+
+For romanized text that isn't a Gurbani line (single words, glossary terms,
+names), `reverse_words` looks each word up in an index built from the bundled
+lexicon, romanized forward with the system:
+
+```python
+from gurmukhi_transliterate import reverse_words
+
+r = reverse_words('naanak', system='sttm')
+r.gurmukhi                       # 'ਨਾਨਕ'
+r.words[0].candidates            # (('ਨਾਨਕ', 4797), ...) best first, by frequency
+reverse_words('satigur prasaadi').system    # picked automatically when not given
+reverse_words('naanak xyzzy').missing       # ['xyzzy']; gurmukhi is None, nothing is guessed
+```
+
+`to_gurmukhi` tries a verse match first and falls back to this. If a word has
+no known spelling it raises `UnableToReverse` and names the word. Words outside
+the lexicon (and spellings the system maps don't produce yet, see #26) aren't
+reversed. An index is built the first time each system is used, which takes
+about a second.
 
 ## Develop
 
