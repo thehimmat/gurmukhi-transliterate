@@ -205,3 +205,21 @@ class TestDiaeresisHiatus:
     def test_no_latin_leaks(self):
         out = shackle_to_gurmukhi('daïā saü')
         assert not any('a' <= ch.lower() <= 'z' or ch in 'ïü' for ch in out)
+
+
+class TestKoshCrossCheck:
+    """#13: words the Shackle OCR cross-check (gurmukhi-kosh #6) reversed
+    wrongly; the printed Gurmukhi was right."""
+
+    @pytest.mark.parametrize('roman, gurmukhi', [
+        ('jūṭhā', 'ਜੂਠਾ'),        # ṭh is retroflex ਠ, not dental ਥ
+        ('kaṅkaṇu', 'ਕੰਕਣੁ'),     # ṇ is ਣ, not ਨ
+        ('bālaṇu', 'ਬਾਲਣੁ'),
+        ('putru', 'ਪੁਤ੍ਰੁ'),       # subjoined ਰ kept
+        ('mitru', 'ਮਿਤ੍ਰੁ'),
+        ('pavitru', 'ਪਵਿਤ੍ਰੁ'),
+        ('daïā', 'ਦਇਆ'),          # no Latin ï leaks
+        ('ammritu', 'ਅੰਮ੍ਰਿਤੁ'),   # no doubled tippi
+    ])
+    def test_reverses_to_printed_spelling(self, roman, gurmukhi):
+        assert shackle_to_gurmukhi(roman) == gurmukhi
