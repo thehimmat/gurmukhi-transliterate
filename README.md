@@ -46,9 +46,18 @@ m.best        # → 'ਸਾਂ'  (most frequent attested candidate; primary if n
 m.matches     # ranked in-corpus candidates
 ```
 
-Validated against the 5,959 Gurmukhi-bearing glossary head-words: 92% exact,
-97% including flagged candidates. See `systems.py::SHACKLE` for the scheme and
-the `notes` field for the rules the generic forward engine only approximates.
+Accuracy on real Shackle text: 92% exact, 97% including flagged candidates, on
+the 5,959 Gurmukhi-bearing head-words of *A Guru Nanak Glossary*. This was
+measured on 2026-07-22 (commit `1677fa4`). The glossary is a copyrighted book
+and isn't in the repo, so this figure can't be re-run from here.
+
+The reproducible check is a round trip: the 1,951 distinct words of the gold
+lines (tests/fixtures/gold/) are romanized with our Shackle map and reversed.
+It gives 96.1% exact and 97.3% including flagged candidates; run
+`python tools/eval.py` and see `docs/eval/baseline.md`. A round trip only tests
+the engine against our own forward map, so expect real transcriptions to score
+lower. See `systems.py::SHACKLE` for the scheme and the `notes` field for the
+rules the generic forward engine only approximates.
 
 ## Install
 
