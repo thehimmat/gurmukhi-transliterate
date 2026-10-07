@@ -71,39 +71,52 @@ from gurmukhi_transliterate import GurmukhiISO15919, GurmukhiPractical, Gurmukhi
 
 ### Legacy font conversion
 
-`GurmukhiLegacy.to_unicode` converts AnmolLipi/GurbaniAkhar-encoded text to Unicode.
-It keeps line structure exactly (same newlines in and out) and never drops input:
-ASCII punctuation passes through, and anything unmapped is kept and logged.
-Use `convert` to get those warnings as data:
+`GurmukhiLegacy.to_unicode` converts legacy-font text to Unicode. Supported
+encodings (`ENCODINGS`) are `'anmollipi'` (AnmolLipi, GurbaniAkhar, GurbaniLipi,
+Prabhki: the default), `'asees'` and `'joy'` (the typewriter layout, used in many
+Punjabi books and PDFs). It keeps line structure exactly (same newlines in and out) and
+never drops input: ASCII punctuation passes through, and anything unmapped is kept and
+logged. Use `convert` to get those warnings as data:
 
 ```python
-GurmukhiLegacy.to_unicode('ikæsmq')      # 'ਕ਼ਿਸਮਤ' (consonant, nukta, sihari)
+GurmukhiLegacy.to_unicode('ikæsmq')                  # 'ਕ਼ਿਸਮਤ' (consonant, nukta, sihari)
+GurmukhiLegacy.to_unicode('uzvh', encoding='asees')  # 'ਚੰਡੀ'
+GurmukhiLegacy.convert('uzvh', 'auto').encoding      # 'asees' (detected)
 result = GurmukhiLegacy.convert('kèk')
 result.text                               # 'ਕèਕ'
 result.warnings                           # [ConversionWarning(position=1, char='è', kind='unmapped', ...)]
 ```
 
-`detect_encoding` guesses whether text is `'unicode'`, `'anmollipi'` (GurbaniAkhar family),
-`'latin'` (English or romanised text — don't run it through the legacy converter) or
-`'unknown'`. `detect_lines` returns one `EncodingGuess(label, score)` per line, for pages
-that mix legacy-font verses with romanised headings.
+When you know the font (a PDF lists it, e.g. `CKPHAK+Asees`), `encoding_for_font`
+maps its name to an encoding; that is more reliable than detection.
+
+`detect_encoding` guesses whether text is `'unicode'`, one of `ENCODINGS`, `'latin'`
+(English or romanised text: don't run it through the legacy converter) or `'unknown'`.
+AnmolLipi is recognised by its spelling structure; Asees and Joy by converting and
+looking the words up in the bundled Gurbani lexicon. They share their letter keys, so
+text without Joy's few distinct keys reads as `'asees'` (the output is the same).
+`detect_lines` returns one `EncodingGuess(label, score)` per line, for pages that mix
+legacy-font verses with romanised headings.
 
 ```python
 GurmukhiLegacy.detect_encoding('Awid scu jugwid scu ]')   # 'anmollipi'
+GurmukhiLegacy.detect_encoding("fsj py;h; eoh eoskoz.")  # 'asees'
 GurmukhiLegacy.detect_encoding('Hanūmān Nāṭak')           # 'latin'
+GurmukhiLegacy.encoding_for_font('CKPHAK+Asees')          # 'asees'
 ```
 
-`conversion_report(text)` bundles all of this into one JSON-ready dict, which is what
-`GET /api/legacy?text=…` returns:
+`conversion_report(text, encoding=None, font=None)` bundles all of this into one
+JSON-ready dict, which is what `GET /api/legacy?text=…[&encoding=…][&font=…]` returns:
 
 ```json
-{"unicode": "ਕèਕ", "encoding": "latin",
+{"unicode": "ਕèਕ", "encoding": "latin", "converted_with": "anmollipi",
  "lines": [{"label": "latin", "score": 1.0}],
  "warnings": [{"position": 1, "char": "è", "kind": "unmapped", "message": "no mapping; passed through"}]}
 ```
 
 Real-text regression fixtures live in `tests/fixtures/legacy/` as parallel
-`<name>.gurbaniakhar.txt` / `<name>.unicode.txt` files, compared line by line.
+`<name>.<encoding>.txt` / `<name>.unicode.txt` files, compared line by line; their
+sources are in that folder's README.
 
 ## Real-world schemes
 

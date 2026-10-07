@@ -268,6 +268,6 @@ class TestConversionReport:
 
     def test_empty(self):
         from gurmukhi_transliterate import conversion_report
-        assert conversion_report('') == {'unicode': '', 'encoding': 'unknown',
+        assert conversion_report('') == {'unicode': '', 'encoding': 'unknown', 'converted_with': 'anmollipi',
                                          'lines': [{'label': 'unknown', 'score': 0.0}],
                                          'warnings': []}

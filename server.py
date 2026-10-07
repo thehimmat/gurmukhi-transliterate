@@ -286,7 +286,7 @@ HTML = """<!DOCTYPE html>
   <div class="section-title">Legacy → Unicode</div>
   <div class="legacy-section">
     <div class="legacy-row">
-      <textarea id="legacy-input" placeholder="AnmolLipi / legacy font text"></textarea>
+      <textarea id="legacy-input" placeholder="AnmolLipi, Asees or Joy font text"></textarea>
       <span class="legacy-arrow">→</span>
       <div class="legacy-result" id="legacy-output" style="color:#444;font-style:italic;font-size:0.9rem">—</div>
     </div>
@@ -454,6 +454,7 @@ HTML = """<!DOCTYPE html>
       const notes = [];
       if (data.encoding === 'latin') notes.push('This looks like Latin-script text (English or romanised), not a legacy font.');
       if (data.encoding === 'unicode') notes.push('This is already Unicode Gurmukhi.');
+      if (data.converted_with && data.converted_with !== 'anmollipi') notes.push('Converted as ' + data.converted_with + ' (typewriter layout).');
       const unmapped = [...new Set(data.warnings.filter(w => w.kind === 'unmapped').map(w => w.char))];
       if (unmapped.length) notes.push('Unmapped characters kept as-is: ' + unmapped.join(' '));
       const orphans = data.warnings.filter(w => w.kind === 'orphan_sihari').length;
@@ -567,7 +568,12 @@ class Handler(BaseHTTPRequestHandler):
 
         elif path == "/api/legacy":
             text = params.get("text", [""])[0]
-            self.send_json(conversion_report(text))
+            encoding = params.get("encoding", [""])[0] or None
+            font = params.get("font", [""])[0] or None
+            try:
+                self.send_json(conversion_report(text, encoding=encoding, font=font))
+            except ValueError as e:
+                self.send_json({"error": str(e)}, 400)
 
         else:
             self.send_json({"error": "not found"}, 404)

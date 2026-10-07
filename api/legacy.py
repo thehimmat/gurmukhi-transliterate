@@ -13,8 +13,13 @@ class handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         params = parse_qs(parsed.query)
         text = params.get("text", [""])[0]
+        encoding = params.get("encoding", [""])[0] or None
+        font = params.get("font", [""])[0] or None
 
-        result = conversion_report(text)
+        try:
+            result = conversion_report(text, encoding=encoding, font=font)
+        except ValueError as e:
+            result = {"error": str(e)}
 
         body = json.dumps(result).encode()
         self.send_response(200)
