@@ -73,3 +73,45 @@ class TestWords:
 
     def test_satnam(self):
         assert t('ਸਤਿਨਾਮੁ') == 'satinaamu'
+
+
+class TestIssue23:
+    @pytest.mark.parametrize("gurmukhi,expected", [
+        ('ਜ਼ਮੀਨ', 'zameena'),
+        ('ਸ਼ਸ', 'shasa'),
+        ('ਫ਼ਤਿਹ', 'fatiha'),
+        ('ਗ਼ਰੀਬ', 'ġhareeba'),
+    ])
+    def test_nukta_letters_keep_their_own_values(self, gurmukhi, expected):
+        assert t(gurmukhi) == expected
+
+    def test_precomposed_nukta_input(self):
+        assert t('ਸ਼ਸ') == 'shasa'
+
+    @pytest.mark.parametrize("gurmukhi,expected", [
+        ('ਪੱਕਾ', 'pakkaa'),
+        ('ਕਿੱਤਾ', 'kittaa'),
+        ('ਮੁੱਖ', 'mukkha'),     # aspirate geminates as k + kh
+        ('ਇੱਕ', 'ikka'),
+        ('ਸੱਚ', 'sachcha'),
+    ])
+    def test_addak(self, gurmukhi, expected):
+        assert t(gurmukhi) == expected
+
+    def test_final_schwa_same_at_end_and_before_space(self):
+        assert t('ਸਿੰਘ') == 'singha'
+        assert t('ਸਿੰਘ ਜੀ') == 'singha jee'
+        assert t('ਸਿੰਘ ਜੀ', delete_schwa=True) == 'singh jee'
+
+    @pytest.mark.parametrize("gurmukhi,expected", [
+        ('ਅੰਮ੍ਰਿਤ', 'ammrita'),   # tippi before labial → m, wherever it sits
+        ('ਅੰਗ', 'anga'),
+        ('ਕਿਉਂ', 'kiun'),
+    ])
+    def test_nasals_after_vowels(self, gurmukhi, expected):
+        assert t(gurmukhi) == expected
+
+    def test_modifiers_match_iso(self):
+        from gurmukhi_transliterate import GurmukhiISO15919
+        assert GurmukhiPractical.MODIFIERS['ੰ'] == GurmukhiISO15919.MODIFIERS['ੰ'] == 'ṃ'
+        assert GurmukhiPractical.MODIFIERS['ਂ'] == GurmukhiISO15919.MODIFIERS['ਂ'] == 'ṁ'
