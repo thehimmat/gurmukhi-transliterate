@@ -88,3 +88,14 @@ class TestWordValidity:
     ])
     def test_invalid_legacy_words(self, word):
         assert not GurmukhiLegacy._is_plausible_legacy_word(word)
+
+
+class TestCombinationKeys:
+    """Single-key entries of SPECIAL_COMBINATIONS (e.g. W = ਾਂ) are legacy keys too."""
+
+    @pytest.mark.parametrize('text', [
+        'nwmu inrMjnu aucrW piq isau Gir jWeI ]',   # found by tools/eval.py
+        'vIhW dY vrqwrY EeI [10[',
+    ])
+    def test_kanna_bindi_W(self, text):
+        assert detect(text) == 'anmollipi'

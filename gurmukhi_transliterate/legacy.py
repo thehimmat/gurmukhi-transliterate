@@ -352,7 +352,8 @@ class GurmukhiLegacy:
 
     @classmethod
     def _guess(cls, text: str) -> EncodingGuess:
-        legacy_keys = set(cls.ANMOLLIPI_MAP) | set(cls.SUBJOINED_MAP) | {'[', ']', 'ƒ'}
+        legacy_keys = (set(cls.ANMOLLIPI_MAP) | set(cls.SUBJOINED_MAP)
+                       | {k for k in cls.SPECIAL_COMBINATIONS if len(k) == 1})
         gurmukhi = sum(1 for c in text if '\u0A00' <= c <= '\u0A7F')
         latin = sum(1 for c in text if c.isalpha() and c not in legacy_keys
                     and not '\u0A00' <= c <= '\u0A7F')

@@ -16,5 +16,8 @@ dev = ["pytest>=8"]
 where = ["."]
 include = ["gurmukhi_transliterate*"]
 
+[tool.setuptools.package-data]
+gurmukhi_transliterate = ["data/*.tsv.gz", "data/README.md"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
