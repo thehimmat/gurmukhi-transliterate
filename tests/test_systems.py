@@ -318,7 +318,7 @@ def _shape_cases():
             # addak after an independent vowel
             ('ਇੱਕ', [vw['ਇ'], c['ਕ'], c['ਕ'], a]),
             # tippi after an independent vowel
-            ('ਅੰਗ', [vw['ਅ'], m.nasal_tippi, c['ਗ'], a]),
+            ('ਅੰਗ', [vw['ਅ'], m.nasal_by_class.get('velar', m.nasal_tippi), c['ਗ'], a]),
             # bindi after an independent vowel following a sign
             ('ਕਿਉਂ', [c['ਕ'], vd['ਿ'], vw['ਉ'], m.nasal_bindi]),
         ]
@@ -351,3 +351,95 @@ class TestAddakAndNasalsAnywhere:
 
     def test_addak_at_end_does_not_crash(self):
         assert rom('sttm', 'ਕੱ') == 'ka'
+
+
+# --- #22: no silent drops; subjoined forms ----------------------------------
+
+class TestFallbacks:
+    def report(self, sid, text):
+        from gurmukhi_transliterate import GurmukhiRomanizer
+        return GurmukhiRomanizer(sid).romanize_report(text)
+
+    def test_letter_missing_from_system_uses_iso(self):
+        r = self.report('iast', 'ਪੜ')            # IAST map has no ੜ
+        assert r.text == 'paṛa'
+        assert [(w.kind, w.char, w.position) for w in r.warnings] == [('fallback_iso', 'ੜ', 1)]
+
+    def test_missing_nukta_letter_uses_base(self):
+        r = self.report('sttm', 'ਲ਼')             # sttm has no ਲ਼
+        assert r.text == 'la'
+        assert [w.kind for w in r.warnings] == ['fallback_base']
+
+    def test_missing_consonant_without_nukta(self):
+        assert self.report('sacred_nitnem', 'ਙ').text == 'ṅa'
+
+    def test_missing_independent_vowel(self):
+        r = self.report('banidb_ipa', 'ਔ')
+        assert r.text == 'au' and r.warnings[0].kind == 'fallback_iso'
+
+    def test_missing_bindi_uses_tippi_value(self):
+        r = self.report('gfs', 'ਨਾਂ')             # gfs defines no bindi
+        assert r.text == rom('gfs', 'ਨਾ') + 'n'
+        assert r.warnings[0].kind == 'fallback_nasal'
+
+    def test_clean_text_has_no_warnings(self):
+        assert self.report('sttm', 'ਸਤਿ ਨਾਮੁ').warnings == []
+
+    def test_romanize_still_returns_str_and_logs(self, caplog):
+        with caplog.at_level('WARNING', logger='gurmukhi_transliterate._core'):
+            assert rom('iast', 'ਪੜ') == 'paṛa'
+        assert 'ੜ' in caplog.text
+
+
+class TestSubjoined:
+    def test_gursevak_subscript(self):
+        assert rom('gursevak', 'ਪ੍ਰੀਤਮ') == 'pᵣeetama'
+
+    def test_undefined_subjoined_uses_consonant(self):
+        # dr_sant_singh leaves ੍ਹ undefined → plain consonant value
+        from gurmukhi_transliterate import SYSTEMS
+        c = SYSTEMS['dr_sant_singh'].consonants
+        assert rom('dr_sant_singh', 'ਪੜ੍ਹ') == c['ਪ'] + 'a' + c['ੜ'] + c['ਹ'] + 'a'
+
+
+class TestHomorganicNasals:
+    """Shackle §5: tippi before a stop is written as that stop's class nasal."""
+
+    @pytest.mark.parametrize('text, expected', [
+        ('ਸੰਤ', 'santa'),
+        ('ਸੰਕ', 'saṅka'),
+        ('ਸੰਚ', 'sañca'),
+        ('ਸੰਟ', 'saṇṭa'),
+        ('ਸੰਪ', 'sampa'),
+        ('ਕੰਮ', 'kamma'),
+        ('ਸੰਸਾਰ', 'saṁsāra'),   # not before a stop: plain nasalisation
+    ])
+    def test_shackle(self, text, expected):
+        assert rom('shackle', text) == expected
+
+    def test_shackle_reverse_round_trip(self):
+        from gurmukhi_transliterate.reverse import shackle_to_gurmukhi
+        for w in ('ਸੰਤ', 'ਸੰਕ', 'ਸੰਚ', 'ਸੰਟ', 'ਸੰਪ'):
+            assert shackle_to_gurmukhi(rom('shackle', w)) == w
+
+
+class TestLabialNasalsByEvidence:
+    """Per docs/research/16-romanized-gurmukhi/notes/nasal_conventions.md."""
+
+    @pytest.mark.parametrize('sid', ['dr_thind', 'dr_sant_singh'])
+    def test_labial_m(self, sid):
+        assert rom(sid, 'ਕੰਮ') == 'kamma'
+        assert rom(sid, 'ਸੰਤ') == 'santa'          # other classes keep n
+
+    def test_ipa_full_class_table(self):
+        assert [rom('ipa', w)[1:3] for w in ('ਸੰਕ', 'ਸੰਚ', 'ਸੰਟ', 'ਸੰਤ', 'ਸੰਪ')] == \
+            ['əŋ', 'əɲ', 'əɳ', 'ən', 'əm']
+
+    @pytest.mark.parametrize('sid, expected', [
+        ('sttm', 'ka(n)ma'),            # BaniDB: ka(n)m — no labial switch
+        ('sttm_legacy', 'kanma'),       # iGurbani: kanm
+        ('banidb_ipa', 'kəŋmə'),
+        ('sacred_nitnem', 'kaṅma'),
+    ])
+    def test_fixed_nasal_systems_unchanged(self, sid, expected):
+        assert rom(sid, 'ਕੰਮ') == expected

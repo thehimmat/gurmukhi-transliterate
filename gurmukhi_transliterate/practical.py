@@ -12,6 +12,7 @@ Use cases:
 """
 
 from .schwa import compute_deletions
+from ._tokens import normalize, tokenize
 
 
 class GurmukhiPractical:
@@ -54,11 +55,19 @@ class GurmukhiPractical:
         '?': '?', '!': '!', '"': '"', "'": "'", '\n': '\n',
     }
 
+    # Same convention as ISO 15919 (tippi ṃ, bindi ṁ); practical output itself
+    # writes nasals as m/n by context.
     MODIFIERS = {
-        '੍': '', 'ੰ': 'ṁ', 'ਂ': 'ṃ', 'ੱ': '', '਼': '',
+        '੍': '', 'ੰ': 'ṃ', 'ਂ': 'ṁ', 'ੱ': '', '਼': '',
     }
 
     LABIAL_CONSONANTS = {'ਬ', 'ਭ', 'ਪ', 'ਫ', 'ਮ'}
+
+    # An aspirate geminates as its unaspirated partner + itself (ਮੁੱਖ → mukkh).
+    UNASPIRATED = {
+        'ਖ': 'ਕ', 'ਘ': 'ਗ', 'ਛ': 'ਚ', 'ਝ': 'ਜ', 'ਠ': 'ਟ',
+        'ਢ': 'ਡ', 'ਥ': 'ਤ', 'ਧ': 'ਦ', 'ਫ': 'ਪ', 'ਭ': 'ਬ',
+    }
 
     @classmethod
     def to_practical(cls, text: str, delete_schwa: bool = False) -> str:
@@ -69,97 +78,65 @@ class GurmukhiPractical:
             delete_schwa: Apply schwa deletion rules (R1 word-final, R2
                           pre-vocalic, R3 cascade). Default False.
         """
+        C = cls.CONSONANTS
+        text = normalize(text)
         deletions: set[int] = (
-            compute_deletions(
-                text,
-                set(cls.CONSONANTS.keys()),
-                set(cls.VOWEL_DIACRITICS.keys()),
-            )
+            compute_deletions(text, set(C.keys()), set(cls.VOWEL_DIACRITICS.keys()))
             if delete_schwa
             else set()
         )
-        result = ""
-        i = 0
-        while i < len(text):
-            char = text[i]
-            next_char = text[i + 1] if i + 1 < len(text) else None
-            next_next_char = text[i + 2] if i + 2 < len(text) else None
 
-            # Nasalization (tippi/bindi) — resolve before consonant
-            if next_char in ['ੰ', 'ਂ']:
-                if char in cls.CONSONANTS:
-                    result += cls.CONSONANTS[char] + 'a'  # include inherent vowel
-                elif char in cls.VOWELS:
-                    result += cls.VOWELS[char]
-                elif char in cls.VOWEL_DIACRITICS:
-                    result += cls.VOWEL_DIACRITICS[char]
-                result += 'm' if next_next_char in cls.LABIAL_CONSONANTS else 'n'
-                i += 2
-                continue
+        tokens = tokenize(text)
+        result = ''
+        geminate = False
+        j = 0
+        while j < len(tokens):
+            tok = tokens[j]
+            nxt = tokens[j + 1] if j + 1 < len(tokens) else None
 
-            if char in cls.SPECIAL_SYMBOLS:
-                result += cls.SPECIAL_SYMBOLS[char]
-                i += 1
-                continue
-
-            if char in cls.NUMBERS:
-                result += cls.NUMBERS[char]
-                i += 1
-                continue
-
-            if char in cls.PUNCTUATION:
-                result += cls.PUNCTUATION[char]
-                i += 1
-                continue
-
-            if char in cls.CONSONANTS:
-                result += cls.CONSONANTS[char]
-                if next_char in cls.VOWEL_DIACRITICS:
-                    result += cls.VOWEL_DIACRITICS[next_char]
-                    # Check for nasalization after the vowel diacritic
-                    after_diacritic = text[i + 2] if i + 2 < len(text) else None
-                    if after_diacritic in ('ੰ', 'ਂ'):
-                        after_nasal = text[i + 3] if i + 3 < len(text) else None
-                        result += 'm' if after_nasal in cls.LABIAL_CONSONANTS else 'n'
-                        i += 3
-                        continue
-                    i += 2
+            if tok.kind == 'cons':
+                rom = C.get(tok.text) or C.get(tok.text[0])
+                if rom is None:
+                    geminate = False
+                    j += 1
                     continue
-                elif next_char in cls.MODIFIERS:
-                    if next_char == 'ੰ':
-                        result += 'n'
-                    elif next_char == 'ਂ':
-                        result += 'n'
-                    elif next_char == 'ੱ':
-                        if i + 2 < len(text) and text[i + 2] in cls.CONSONANTS:
-                            result += cls.CONSONANTS[text[i + 2]]
-                    i += 2
+                if geminate:
+                    partner = cls.UNASPIRATED.get(tok.text)
+                    result += C[partner] if partner else rom
+                    geminate = False
+                result += rom
+                if nxt is not None and nxt.kind == 'sign':
+                    result += cls.VOWEL_DIACRITICS[nxt.text]
+                    j += 2
                     continue
-                elif next_char not in ['੍', ' ', '।', '॥']:
-                    if not delete_schwa or i not in deletions:
-                        result += 'a'
-                i += 1
+                if nxt is not None and nxt.kind == 'virama':
+                    j += 2
+                    continue
+                if nxt is not None and nxt.kind in ('nasal', 'addak'):
+                    result += 'a'
+                elif tok.pos not in deletions:
+                    result += 'a'
+                j += 1
                 continue
 
-            if char in cls.VOWELS:
-                result += cls.VOWELS[char]
-                i += 1
-                continue
-
-            if char in cls.VOWEL_DIACRITICS:
-                result += cls.VOWEL_DIACRITICS[char]
-                i += 1
-                continue
-
-            if char in cls.MODIFIERS:
-                # Standalone tippi/bindi (e.g. word-final after a vowel diacritic)
-                if char in ('ੰ', 'ਂ'):
-                    result += 'm' if next_char in cls.LABIAL_CONSONANTS else 'n'
-                i += 1
-                continue
-
-            if char == ' ':
-                result += ' '
-            i += 1
+            geminate = False
+            if tok.kind == 'addak':
+                geminate = nxt is not None and nxt.kind == 'cons'
+            elif tok.kind == 'nasal':
+                labial = nxt is not None and nxt.kind == 'cons' and nxt.text in cls.LABIAL_CONSONANTS
+                result += 'm' if labial else 'n'
+            elif tok.kind == 'sign':
+                result += cls.VOWEL_DIACRITICS[tok.text]
+            elif tok.kind == 'vowel' and tok.text in cls.VOWELS:
+                result += cls.VOWELS[tok.text]
+            elif tok.kind == 'other':
+                ch = tok.text
+                if ch in cls.SPECIAL_SYMBOLS:
+                    result += cls.SPECIAL_SYMBOLS[ch]
+                elif ch in cls.NUMBERS:
+                    result += cls.NUMBERS[ch]
+                elif ch in cls.PUNCTUATION:
+                    result += cls.PUNCTUATION[ch]
+            j += 1
 
         return result

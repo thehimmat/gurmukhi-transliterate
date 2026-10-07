@@ -24,6 +24,9 @@ from __future__ import annotations
 _WORD_BOUNDARIES: frozenset[str] = frozenset(' \t\n।॥')
 _VIRAMA = '੍'
 _NUKTA = '਼'
+# Independent vowel letters (and bare carriers). A consonant directly before
+# one keeps its schwa, in hiatus: ਹੋਵਈ = ho-va-ī, ਭਉ = bha-u.
+_INDEPENDENT_VOWELS: frozenset[str] = frozenset('ਅਆਇਈਉਊਏਐਓਔੳੲ')
 
 
 def compute_deletions(
@@ -76,7 +79,8 @@ def _collect_syllables(
 
     position            = index of the consonant's first character in text.
     has_explicit_vowel  = True if the consonant is followed by a vowel
-                          diacritic or a virama (which suppresses the schwa).
+                          diacritic or a virama (which suppresses the schwa),
+                          or by an independent vowel (its schwa is pronounced).
     """
     syllables: list[tuple[int, bool]] = []
     k = start
@@ -94,25 +98,37 @@ def _collect_syllables(
             # Only treat as two-char unit if it's in the consonants set
             if two in consonants:
                 after = k + 2
-                has_explicit = after < end and (
-                    text[after] in vowel_diacritics or text[after] == _VIRAMA
-                )
+                has_explicit, consumed = _vowel_after(text, after, end, vowel_diacritics)
                 syllables.append((k, has_explicit))
-                k = after + (1 if has_explicit else 0)
+                k = after + consumed
                 continue
 
         if char in consonants:
             after = k + 1
-            has_explicit = after < end and (
-                text[after] in vowel_diacritics or text[after] == _VIRAMA
-            )
+            has_explicit, consumed = _vowel_after(text, after, end, vowel_diacritics)
             syllables.append((k, has_explicit))
-            k = after + (1 if has_explicit else 0)
+            k = after + consumed
             continue
 
         k += 1
 
     return syllables
+
+
+def _vowel_after(
+    text: str, after: int, end: int, vowel_diacritics: set[str],
+) -> tuple[bool, int]:
+    """Whether the consonant ending at *after* has an explicit vowel, and how
+    many characters of that vowel mark to skip (signs and virama are consumed;
+    an independent vowel is not, so it is never mistaken for a consonant)."""
+    if after >= end:
+        return False, 0
+    nxt = text[after]
+    if nxt in vowel_diacritics or nxt == _VIRAMA:
+        return True, 1
+    if nxt in _INDEPENDENT_VOWELS:
+        return True, 0
+    return False, 0
 
 
 def _apply_rules(

@@ -168,3 +168,40 @@ class TestPersian:
         assert shackle_to_gurmukhi('za') == 'ਜ਼'
         assert shackle_to_gurmukhi('fa') == 'ਫ਼'
         assert shackle_to_gurmukhi('śa') == 'ਸ਼'
+
+
+# --- #25: nasal groups only before homorganic consonants; ï hiatus -----------
+
+class TestNasalGroupHomorganic:
+    @pytest.mark.parametrize('roman, expected', [
+        ('amritu', 'ਅਮ੍ਰਿਤੁ'),      # m + r is a conjunct, not a nasal group
+        ('ammritu', 'ਅੰਮ੍ਰਿਤੁ'),    # geminate m (ੰ+ਮ), then ਮ੍ਰ — no doubled tippi
+        ('santa', 'ਸੰਤ'),           # homorganic groups still take tippi
+        ('saṅka', 'ਸੰਕ'),
+        ('sañca', 'ਸੰਚ'),
+        ('saṇṭa', 'ਸੰਟ'),
+        ('sampa', 'ਸੰਪ'),
+    ])
+    def test_nasal_groups(self, roman, expected):
+        assert shackle_to_gurmukhi(roman) == expected
+
+    def test_no_doubled_tippi(self):
+        assert 'ੰੰ' not in shackle_to_gurmukhi('ammritu')
+
+    def test_amritu_offers_tippi_spelling(self):
+        from gurmukhi_transliterate.matcher import candidate_spellings
+        assert 'ਅੰਮ੍ਰਿਤੁ' in candidate_spellings(reverse_transliterate('amritu'))
+
+    def test_forward_shackle_round_trips(self):
+        from gurmukhi_transliterate import GurmukhiRomanizer
+        roman = GurmukhiRomanizer('shackle').romanize('ਅੰਮ੍ਰਿਤੁ')
+        assert shackle_to_gurmukhi(roman) == 'ਅੰਮ੍ਰਿਤੁ'
+
+
+class TestDiaeresisHiatus:
+    def test_i_diaeresis(self):
+        assert shackle_to_gurmukhi('daïā') == 'ਦਇਆ'
+
+    def test_no_latin_leaks(self):
+        out = shackle_to_gurmukhi('daïā saü')
+        assert not any('a' <= ch.lower() <= 'z' or ch in 'ïü' for ch in out)
