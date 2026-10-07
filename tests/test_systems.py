@@ -76,29 +76,36 @@ class TestDrThind:
 # ---------------------------------------------------------------------------
 
 class TestSTTM:
-    """Current BaniDB scheme (sikhitothemax.org)."""
+    """Current BaniDB scheme (sikhitothemax.org), via the anvaad-js port.
+
+    Expected values are BaniDB's own output (see tests/test_conformance.py)."""
 
     def test_waheguru(self):
         assert rom('sttm', 'ਵਾਹਿਗੁਰੂ') == 'vaahiguroo'
 
-    def test_dental_t_is_plain_t(self):
-        # BaniDB scheme: ਸਤਿ → sat (not sath)
-        assert rom('sttm', 'ਸਤਿ') == 'sati'
+    def test_final_short_vowels_dropped_before_a_space(self):
+        assert rom('sttm', 'ਸਤਿ ਨਾਮੁ ॥') == 'sat naam ||'
 
-    def test_retroflex_capital_T(self):
-        assert rom('sttm', 'ਟ') == 'Ta'
-
-    def test_retroflex_R(self):
-        # ਪੜਿ → paR in BaniDB output
-        assert rom('sttm', 'ੜ') == 'Ra'
+    def test_retroflex_capitals(self):
+        assert rom('sttm', 'ਕੂੜੈ ਤੁਟੈ ॥') == 'kooRai tuTai ||'
 
     def test_nasal_parenthesised(self):
-        # ਸੈਭੰ → saibha(n)
-        assert rom('sttm', 'ਸੈਭੰ') == 'saibha(n)'
+        assert rom('sttm', 'ਸੈਭੰ ਗੁਰ ॥') == 'saibha(n) gur ||'
 
     def test_dh_merger(self):
-        # Both ਦ and ਧ romanize as dh
-        assert rom('sttm', 'ਦ') == rom('sttm', 'ਧ') == 'dha'
+        assert rom('sttm', 'ਦਇਆ ਧਰਮ ॥') == 'dhiaa dharam ||'
+
+    def test_addak_apostrophe(self):
+        assert rom('sttm', 'ਸਿੱਖੀ ਸਿਖਿਆ ॥') == "si'khee sikhiaa ||"
+
+    def test_mahalaa_ordinal(self):
+        assert rom('sttm', 'ਮਹਲਾ ੫ ॥') == 'mahalaa panjavaa ||'
+
+    def test_ik_oankaar(self):
+        assert rom('sttm', 'ੴ ਸਤਿ ਨਾਮੁ ॥') == 'ikOankaar sat naam ||'
+
+    def test_delete_schwa_has_no_effect(self):
+        assert rom('sttm', 'ਨਾਮ ਜਪੈ ॥', delete_schwa=True) == rom('sttm', 'ਨਾਮ ਜਪੈ ॥')
 
 
 class TestSTTMLegacy:
@@ -122,13 +129,13 @@ class TestSTTMLegacy:
 
 
 class TestBaniDBIPA:
-    def test_bh_is_implosive(self):
-        # ਭੀ → ɓi in BaniDB IPA
-        assert rom('banidb_ipa', 'ਭੀ') == 'ɓi'
+    """BaniDB's IPA field, via the anvaad-js port."""
 
-    def test_no_length_marks(self):
-        # ਨਾਮ → nɑm + inherent ə (ɑ, not aː)
-        assert rom('banidb_ipa', 'ਨਾਮ') == 'nɑmə'
+    def test_bh_is_implosive(self):
+        assert rom('banidb_ipa', 'ਭੀ ਸਚੁ ॥') == 'ɓi sət͡ʃ.'
+
+    def test_line(self):
+        assert rom('banidb_ipa', 'ਕੂੜੈ ਤੁਟੈ ॥') == 'kuɽæ t̪ʊʈæ.'
 
 
 class TestGursevak:
@@ -306,9 +313,13 @@ class TestAddak:
 
 # --- #21: addak / nasals in any position ------------------------------------
 
+MAP_DRIVEN = [s for s in __import__('gurmukhi_transliterate').SYSTEM_ORDER
+              if s not in ('sttm', 'banidb_ipa')]   # those use the anvaad-js port
+
+
 def _shape_cases():
-    from gurmukhi_transliterate import SYSTEMS, SYSTEM_ORDER
-    for sid in SYSTEM_ORDER:
+    from gurmukhi_transliterate import SYSTEMS
+    for sid in MAP_DRIVEN:
         m = SYSTEMS[sid]
         c, vd, vw = m.consonants, m.vowel_diacritics, m.vowels
         a = vw.get('ਅ') or 'a'
@@ -334,23 +345,23 @@ class TestAddakAndNasalsAnywhere:
         assert rom(sid, text) == expected
 
     @pytest.mark.parametrize('sid, text, expected', [
-        ('sttm', 'ਸਿੱਖ', 'sikhkha'),
+        ('dr_thind', 'ਸਿੱਖ', 'sikhkha'),
         ('shackle', 'ਇੱਕ', 'ikka'),
-        ('sttm', 'ਅੰਗ', 'a(n)ga'),
-        ('sttm', 'ਕਿਉਂ', 'kiu(n)'),
+        ('dr_thind', 'ਅੰਗ', 'anga'),
+        ('dr_thind', 'ਕਿਉਂ', 'kiun'),
         ('iast', 'ਆਂਖ', 'āṁkha'),
     ])
     def test_issue_rows(self, sid, text, expected):
         assert rom(sid, text) == expected
 
     def test_addak_after_nukta_letter_keeps_following_vowel(self):
-        assert rom('sttm', 'ਜ਼ੱਮੀਨ') == 'zammeena'
+        assert rom('dr_thind', 'ਜ਼ੱਮੀਨ') == 'zammeena'
 
     def test_precomposed_nukta_input_matches_decomposed(self):
         assert rom('iast', 'ਸ਼ਾ') == rom('iast', 'ਸ਼ਾ')
 
     def test_addak_at_end_does_not_crash(self):
-        assert rom('sttm', 'ਕੱ') == 'ka'
+        assert rom('dr_thind', 'ਕੱ') == 'ka'
 
 
 # --- #22: no silent drops; subjoined forms ----------------------------------
@@ -366,7 +377,7 @@ class TestFallbacks:
         assert [(w.kind, w.char, w.position) for w in r.warnings] == [('fallback_iso', 'ੜ', 1)]
 
     def test_missing_nukta_letter_uses_base(self):
-        r = self.report('sttm', 'ਲ਼')             # sttm has no ਲ਼
+        r = self.report('sttm_legacy', 'ਲ਼')      # sttm_legacy has no ਲ਼
         assert r.text == 'la'
         assert [w.kind for w in r.warnings] == ['fallback_base']
 
@@ -374,7 +385,11 @@ class TestFallbacks:
         assert self.report('sacred_nitnem', 'ਙ').text == 'ṅa'
 
     def test_missing_independent_vowel(self):
-        r = self.report('banidb_ipa', 'ਔ')
+        import dataclasses
+        from gurmukhi_transliterate import GurmukhiRomanizer, SYSTEMS
+        base = SYSTEMS['dr_thind']
+        no_au = dataclasses.replace(base, id='no_au', vowels={k: v for k, v in base.vowels.items() if k != 'ਔ'})
+        r = GurmukhiRomanizer(no_au).romanize_report('ਔ')
         assert r.text == 'au' and r.warnings[0].kind == 'fallback_iso'
 
     def test_missing_bindi_uses_tippi_value(self):
@@ -436,10 +451,11 @@ class TestLabialNasalsByEvidence:
             ['əŋ', 'əɲ', 'əɳ', 'ən', 'əm']
 
     @pytest.mark.parametrize('sid, expected', [
-        ('sttm', 'ka(n)ma'),            # BaniDB: ka(n)m — no labial switch
         ('sttm_legacy', 'kanma'),       # iGurbani: kanm
-        ('banidb_ipa', 'kəŋmə'),
         ('sacred_nitnem', 'kaṅma'),
     ])
     def test_fixed_nasal_systems_unchanged(self, sid, expected):
         assert rom(sid, 'ਕੰਮ') == expected
+
+    def test_banidb_keeps_parenthesised_nasal_before_labials(self):
+        assert rom('sttm', 'ਕੰਮ ॥') == 'ka(n)m ||'

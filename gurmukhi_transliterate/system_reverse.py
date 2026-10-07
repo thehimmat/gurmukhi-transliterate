@@ -29,7 +29,7 @@ from functools import lru_cache
 from .iso15919 import GurmukhiISO15919
 from .lexicon import load_lexicon
 from .practical import GurmukhiPractical
-from .romanizer import GurmukhiRomanizer
+from .romanizer import _DEDICATED, GurmukhiRomanizer
 from .systems import SYSTEM_ORDER
 
 ALL_SYSTEMS = ('iso15919', 'practical', *SYSTEM_ORDER)
@@ -84,12 +84,20 @@ class _Index:
         lexicon = load_lexicon()
         words = list(lexicon)
         exact: dict[str, Counter] = defaultdict(Counter)
-        for delete_schwa in (False, True):
+        dedicated = system in _DEDICATED
+        # Dedicated engines (BaniDB) ignore delete_schwa but depend on context:
+        # a word mid-line ('naam') differs from the same word alone ('naamu').
+        for delete_schwa in ((False,) if dedicated else (False, True)):
             # one call for the whole lexicon; output words align with input words
             out = _forward(system, ' '.join(words), delete_schwa).split(' ')
             if len(out) != len(words):  # pragma: no cover - defensive
                 out = [_forward(system, w, delete_schwa) for w in words]
             for w, roman in zip(words, out):
+                if roman:
+                    exact[roman][w] = lexicon[w]
+        if dedicated:
+            for w in words:
+                roman = _forward(system, w, False)
                 if roman:
                     exact[roman][w] = lexicon[w]
         lower: dict[str, Counter] = defaultdict(Counter)
