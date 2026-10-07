@@ -13,8 +13,12 @@ Usage:
 """
 
 from __future__ import annotations
+import logging
 from .systems import SYSTEMS, SystemMap
 from ._core import transliterate
+from .legacy import ConversionResult
+
+_logger = logging.getLogger('gurmukhi_transliterate._core')
 
 
 class GurmukhiRomanizer:
@@ -41,5 +45,23 @@ class GurmukhiRomanizer:
         Args:
             text:         Gurmukhi Unicode string.
             delete_schwa: Apply schwa deletion (word-final + pre-vocalic).
+
+        Letters the system doesn't define fall back (see ``romanize_report``)
+        and each fallback is logged as a warning.
         """
-        return transliterate(text, self._system, delete_schwa=delete_schwa)
+        result = self.romanize_report(text, delete_schwa=delete_schwa)
+        for w in result.warnings:
+            _logger.warning('%s at position %d (%r): %s', w.kind, w.position, w.char, w.message)
+        return result.text
+
+    def romanize_report(self, text: str, delete_schwa: bool = False) -> ConversionResult:
+        """Romanize *text* and return the fallbacks used as warnings.
+
+        Warning kinds: ``fallback_base`` (nukta letter → its base letter),
+        ``fallback_iso`` (letter → its ISO 15919 value), ``fallback_nasal``
+        (bindi → the system's tippi value). Positions index the NFC-normalised
+        input.
+        """
+        warnings: list = []
+        out = transliterate(text, self._system, delete_schwa=delete_schwa, warnings=warnings)
+        return ConversionResult(out, warnings)

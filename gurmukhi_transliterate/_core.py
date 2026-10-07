@@ -15,13 +15,21 @@ Text is split into syllable parts by :mod:`._tokens`, then rendered:
                 occurs (after a consonant, vowel sign or independent vowel)
   - tippi/bindi → the system's nasal value, after whatever vowel precedes it
   - independent vowels, standalone signs, ੴ, punctuation and numbers map
-    directly; unmapped characters are skipped
+    directly; other unmapped characters are skipped
+
+A letter the system leaves undefined (None or missing) is never dropped: a
+nukta letter falls back to its base letter, anything else to its ISO 15919
+value, and a missing bindi to the system's tippi value. Each fallback is
+recorded as a ConversionWarning (see GurmukhiRomanizer.romanize_report).
+After a virama, the system's ``subjoined`` form is used when it defines one.
 """
 
 from __future__ import annotations
 from .systems import SystemMap
 from .schwa import compute_deletions
-from ._tokens import TIPPI, normalize, tokenize
+from ._tokens import TIPPI, VIRAMA, normalize, tokenize
+from .iso15919 import GurmukhiISO15919
+from .legacy import ConversionWarning
 
 _PUNCTUATION: dict[str, str] = {
     '॥': '||', '।': '|', ' ': ' ', '.': '.', ',': ',',
@@ -38,7 +46,12 @@ _SPECIAL: dict[str, str] = {
 }
 
 
-def transliterate(text: str, system: SystemMap, delete_schwa: bool = False) -> str:
+def transliterate(
+    text: str,
+    system: SystemMap,
+    delete_schwa: bool = False,
+    warnings: list[ConversionWarning] | None = None,
+) -> str:
     """Transliterate *text* using the given system map.
 
     Limitations vs. the dedicated ISO/Practical implementations:
@@ -60,10 +73,27 @@ def transliterate(text: str, system: SystemMap, delete_schwa: bool = False) -> s
         else set()
     )
 
-    def consonant(tok_text: str) -> str | None:
-        if tok_text in cons:
-            return cons[tok_text]
-        return cons.get(tok_text[0])  # nukta letter missing from the map
+    def warn(pos: int, char: str, kind: str, message: str) -> None:
+        if warnings is not None:
+            warnings.append(ConversionWarning(pos, char, kind, message))
+
+    def consonant(tok) -> str | None:
+        if cons.get(tok.text) is not None:
+            return cons[tok.text]
+        if len(tok.text) == 2 and cons.get(tok.text[0]) is not None:
+            warn(tok.pos, tok.text, 'fallback_base',
+                 f'{system.id} has no {tok.text}; used its base letter')
+            return cons[tok.text[0]]
+        iso = GurmukhiISO15919.CONSONANTS.get(tok.text)
+        if iso is not None:
+            warn(tok.pos, tok.text, 'fallback_iso',
+                 f'{system.id} has no {tok.text}; used ISO 15919 {iso!r}')
+        return iso
+
+    def subjoined(tok, prev) -> str | None:
+        if prev is not None and prev.kind == 'virama':
+            return system.subjoined.get(VIRAMA + tok.text)
+        return None
 
     tokens = tokenize(text)
     result: list[str] = []
@@ -74,7 +104,7 @@ def transliterate(text: str, system: SystemMap, delete_schwa: bool = False) -> s
         nxt = tokens[j + 1] if j + 1 < len(tokens) else None
 
         if tok.kind == 'cons':
-            rom = consonant(tok.text)
+            rom = subjoined(tok, tokens[j - 1] if j else None) or consonant(tok)
             if rom is None:
                 geminate = False
                 j += 1
@@ -103,6 +133,10 @@ def transliterate(text: str, system: SystemMap, delete_schwa: bool = False) -> s
             geminate = nxt is not None and nxt.kind == 'cons'
         elif tok.kind == 'nasal':
             nasal = system.nasal_tippi if tok.text == TIPPI else system.nasal_bindi
+            if nasal is None and system.nasal_tippi is not None:
+                nasal = system.nasal_tippi
+                warn(tok.pos, tok.text, 'fallback_nasal',
+                     f'{system.id} has no bindi; used its tippi value')
             if nasal:
                 result.append(nasal)
         elif tok.kind == 'sign':
@@ -111,6 +145,11 @@ def transliterate(text: str, system: SystemMap, delete_schwa: bool = False) -> s
         elif tok.kind == 'vowel':
             if vw.get(tok.text) is not None:
                 result.append(vw[tok.text])  # type: ignore[arg-type]
+            elif tok.text in GurmukhiISO15919.VOWELS:
+                iso = GurmukhiISO15919.VOWELS[tok.text]
+                warn(tok.pos, tok.text, 'fallback_iso',
+                     f'{system.id} has no {tok.text}; used ISO 15919 {iso!r}')
+                result.append(iso)
         elif tok.kind == 'other':
             ch = tok.text
             if ch in _SPECIAL:

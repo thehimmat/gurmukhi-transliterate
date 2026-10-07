@@ -351,3 +351,52 @@ class TestAddakAndNasalsAnywhere:
 
     def test_addak_at_end_does_not_crash(self):
         assert rom('sttm', 'ਕੱ') == 'ka'
+
+
+# --- #22: no silent drops; subjoined forms ----------------------------------
+
+class TestFallbacks:
+    def report(self, sid, text):
+        from gurmukhi_transliterate import GurmukhiRomanizer
+        return GurmukhiRomanizer(sid).romanize_report(text)
+
+    def test_letter_missing_from_system_uses_iso(self):
+        r = self.report('iast', 'ਪੜ')            # IAST map has no ੜ
+        assert r.text == 'paṛa'
+        assert [(w.kind, w.char, w.position) for w in r.warnings] == [('fallback_iso', 'ੜ', 1)]
+
+    def test_missing_nukta_letter_uses_base(self):
+        r = self.report('sttm', 'ਲ਼')             # sttm has no ਲ਼
+        assert r.text == 'la'
+        assert [w.kind for w in r.warnings] == ['fallback_base']
+
+    def test_missing_consonant_without_nukta(self):
+        assert self.report('sacred_nitnem', 'ਙ').text == 'ṅa'
+
+    def test_missing_independent_vowel(self):
+        r = self.report('banidb_ipa', 'ਔ')
+        assert r.text == 'au' and r.warnings[0].kind == 'fallback_iso'
+
+    def test_missing_bindi_uses_tippi_value(self):
+        r = self.report('gfs', 'ਨਾਂ')             # gfs defines no bindi
+        assert r.text == rom('gfs', 'ਨਾ') + 'n'
+        assert r.warnings[0].kind == 'fallback_nasal'
+
+    def test_clean_text_has_no_warnings(self):
+        assert self.report('sttm', 'ਸਤਿ ਨਾਮੁ').warnings == []
+
+    def test_romanize_still_returns_str_and_logs(self, caplog):
+        with caplog.at_level('WARNING', logger='gurmukhi_transliterate._core'):
+            assert rom('iast', 'ਪੜ') == 'paṛa'
+        assert 'ੜ' in caplog.text
+
+
+class TestSubjoined:
+    def test_gursevak_subscript(self):
+        assert rom('gursevak', 'ਪ੍ਰੀਤਮ') == 'pᵣeetama'
+
+    def test_undefined_subjoined_uses_consonant(self):
+        # dr_sant_singh leaves ੍ਹ undefined → plain consonant value
+        from gurmukhi_transliterate import SYSTEMS
+        c = SYSTEMS['dr_sant_singh'].consonants
+        assert rom('dr_sant_singh', 'ਪੜ੍ਹ') == c['ਪ'] + 'a' + c['ੜ'] + c['ਹ'] + 'a'
