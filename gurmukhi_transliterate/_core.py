@@ -13,7 +13,9 @@ Text is split into syllable parts by :mod:`._tokens`, then rendered:
       before tippi/bindi/addak, otherwise subject to schwa deletion)
   - addak     → doubles the romanization of the next consonant, wherever it
                 occurs (after a consonant, vowel sign or independent vowel)
-  - tippi/bindi → the system's nasal value, after whatever vowel precedes it
+  - tippi/bindi → the system's nasal value, after whatever vowel precedes it;
+                  a tippi before a consonant takes that consonant's class
+                  nasal when the system defines ``nasal_by_class``
   - independent vowels, standalone signs, ੴ, punctuation and numbers map
     directly; other unmapped characters are skipped
 
@@ -25,7 +27,7 @@ After a virama, the system's ``subjoined`` form is used when it defines one.
 """
 
 from __future__ import annotations
-from .systems import SystemMap
+from .systems import NASAL_CLASSES, SystemMap
 from .schwa import compute_deletions
 from ._tokens import TIPPI, VIRAMA, normalize, tokenize
 from .iso15919 import GurmukhiISO15919
@@ -133,6 +135,11 @@ def transliterate(
             geminate = nxt is not None and nxt.kind == 'cons'
         elif tok.kind == 'nasal':
             nasal = system.nasal_tippi if tok.text == TIPPI else system.nasal_bindi
+            if tok.text == TIPPI and system.nasal_by_class and nxt is not None and nxt.kind == 'cons':
+                for cls_name, members in NASAL_CLASSES.items():
+                    if nxt.text in members and cls_name in system.nasal_by_class:
+                        nasal = system.nasal_by_class[cls_name]
+                        break
             if nasal is None and system.nasal_tippi is not None:
                 nasal = system.nasal_tippi
                 warn(tok.pos, tok.text, 'fallback_nasal',

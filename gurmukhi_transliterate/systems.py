@@ -42,6 +42,20 @@ class SystemMap:
     nasal_bindi: str | None         # ਂ romanization
     subjoined: dict[str, str | None]  # ੍ਰ ੍ਵ ੍ਹ ...
     notes: str = ''
+    # Homorganic nasals: tippi before a consonant of one of these classes is
+    # written with the class's value instead of nasal_tippi. Keys: 'velar',
+    # 'palatal', 'retroflex', 'dental', 'labial'. Empty = always nasal_tippi.
+    nasal_by_class: dict[str, str] = field(default_factory=dict)
+
+
+# Articulation class of each consonant (the class nasal included: ਕੰਮ, ਬੰਨਾ).
+NASAL_CLASSES: dict[str, frozenset[str]] = {
+    'velar': frozenset('ਕਖਗਘਙ'),
+    'palatal': frozenset('ਚਛਜਝਞ'),
+    'retroflex': frozenset('ਟਠਡਢਣ'),
+    'dental': frozenset('ਤਥਦਧਨ'),
+    'labial': frozenset('ਪਫਬਭਮ'),
+}
 
 
 # ---------------------------------------------------------------------------
@@ -447,21 +461,22 @@ SHACKLE = SystemMap(
         'ਉ': 'u', 'ਊ': 'ū', 'ਏ': 'e', 'ਐ': 'ai',
         'ਓ': 'o', 'ਔ': 'au',
     },
-    # Pure nasalization (§6). Homorganic nasal-group assimilation (§5,
-    # ਸੰਕ → saṅka, ਸੰਤ → santa) is context-dependent and NOT applied by the
-    # generic engine — see notes.
+    # Pure nasalization (§6) is ṁ; before a stop, tippi heads a homorganic
+    # nasal group (§5: ਸੰਕ saṅka, ਸੰਚ sañca, ਸੰਟ saṇṭa, ਸੰਤ santa, ਸੰਪ sampa).
     nasal_tippi='ṁ',
     nasal_bindi='ṁ',
     subjoined={'੍ਰ': 'r', '੍ਵ': 'v', '੍ਹ': 'h', '੍ਤ': 't', '੍ਯ': 'y'},
+    nasal_by_class={'velar': 'ṅ', 'palatal': 'ñ', 'retroflex': 'ṇ',
+                    'dental': 'n', 'labial': 'm'},
     notes=(
         'Scholarly phonemic transcription from Christopher Shackle, '
         '"A Guru Nanak Glossary" (2nd ed. 2011), Transcription pp. xxi-xxv. '
         'Indic core is IAST-like but adds ੜ → ṛ and writes the inherent -a '
         'after every unmarked consonant. Distinctive Shackle rules the '
-        'generic engine only approximates: (§5) nasal groups assimilate '
+        'generic engine applies or approximates: (§5) nasal groups assimilate '
         'homorganically to the following consonant (ੰ → ṅ/ñ/ṇ/n/m: ਸੰਕ '
-        'saṅka, ਸੰਚ sañca, ਸੰਟ saṇṭa, ਸੰਤ santa, ਸੰਪ sampa) — here rendered '
-        'as plain ṁ; (§4) etymological doubling (ਮਤਿ matti) which Gurmukhi '
+        'saṅka, ਸੰਚ sañca, ਸੰਟ saṇṭa, ਸੰਤ santa, ਸੰਪ sampa) — applied via '
+        'nasal_by_class; (§4) etymological doubling (ਮਤਿ matti) which Gurmukhi '
         'never marks; (§3b) aspirate sonorants ṇh nh mh rh lh ṛh written with '
         'subjoined ੍ਹ that print often omits. Because the transcription '
         'preserves retroflex/dental, aspiration, gemination, final short '

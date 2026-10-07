@@ -318,7 +318,7 @@ def _shape_cases():
             # addak after an independent vowel
             ('ਇੱਕ', [vw['ਇ'], c['ਕ'], c['ਕ'], a]),
             # tippi after an independent vowel
-            ('ਅੰਗ', [vw['ਅ'], m.nasal_tippi, c['ਗ'], a]),
+            ('ਅੰਗ', [vw['ਅ'], m.nasal_by_class.get('velar', m.nasal_tippi), c['ਗ'], a]),
             # bindi after an independent vowel following a sign
             ('ਕਿਉਂ', [c['ਕ'], vd['ਿ'], vw['ਉ'], m.nasal_bindi]),
         ]
@@ -400,3 +400,24 @@ class TestSubjoined:
         from gurmukhi_transliterate import SYSTEMS
         c = SYSTEMS['dr_sant_singh'].consonants
         assert rom('dr_sant_singh', 'ਪੜ੍ਹ') == c['ਪ'] + 'a' + c['ੜ'] + c['ਹ'] + 'a'
+
+
+class TestHomorganicNasals:
+    """Shackle §5: tippi before a stop is written as that stop's class nasal."""
+
+    @pytest.mark.parametrize('text, expected', [
+        ('ਸੰਤ', 'santa'),
+        ('ਸੰਕ', 'saṅka'),
+        ('ਸੰਚ', 'sañca'),
+        ('ਸੰਟ', 'saṇṭa'),
+        ('ਸੰਪ', 'sampa'),
+        ('ਕੰਮ', 'kamma'),
+        ('ਸੰਸਾਰ', 'saṁsāra'),   # not before a stop: plain nasalisation
+    ])
+    def test_shackle(self, text, expected):
+        assert rom('shackle', text) == expected
+
+    def test_shackle_reverse_round_trip(self):
+        from gurmukhi_transliterate.reverse import shackle_to_gurmukhi
+        for w in ('ਸੰਤ', 'ਸੰਕ', 'ਸੰਚ', 'ਸੰਟ', 'ਸੰਪ'):
+            assert shackle_to_gurmukhi(rom('shackle', w)) == w
