@@ -286,7 +286,7 @@ HTML = """<!DOCTYPE html>
   <div class="section-title">Legacy → Unicode</div>
   <div class="legacy-section">
     <div class="legacy-row">
-      <textarea id="legacy-input" placeholder="AnmolLipi, Asees or Joy font text"></textarea>
+      <textarea id="legacy-input" placeholder="AnmolLipi, Asees, Joy or AnandpurSahib font text"></textarea>
       <span class="legacy-arrow">→</span>
       <div class="legacy-result" id="legacy-output" style="color:#444;font-style:italic;font-size:0.9rem">—</div>
     </div>
@@ -454,7 +454,7 @@ HTML = """<!DOCTYPE html>
       const notes = [];
       if (data.encoding === 'latin') notes.push('This looks like Latin-script text (English or romanised), not a legacy font.');
       if (data.encoding === 'unicode') notes.push('This is already Unicode Gurmukhi.');
-      if (data.converted_with && data.converted_with !== 'anmollipi') notes.push('Converted as ' + data.converted_with + ' (typewriter layout).');
+      if (data.converted_with && data.converted_with !== 'anmollipi') notes.push('Converted as ' + data.converted_with + '.');
       const unmapped = [...new Set(data.warnings.filter(w => w.kind === 'unmapped').map(w => w.char))];
       if (unmapped.length) notes.push('Unmapped characters kept as-is: ' + unmapped.join(' '));
       const orphans = data.warnings.filter(w => w.kind === 'orphan_sihari').length;

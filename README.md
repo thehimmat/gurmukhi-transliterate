@@ -74,7 +74,9 @@ from gurmukhi_transliterate import GurmukhiISO15919, GurmukhiPractical, Gurmukhi
 `GurmukhiLegacy.to_unicode` converts legacy-font text to Unicode. Supported
 encodings (`ENCODINGS`) are `'anmollipi'` (AnmolLipi, GurbaniAkhar, GurbaniLipi,
 Prabhki: the default), `'asees'` and `'joy'` (the typewriter layout, used in many
-Punjabi books and PDFs). It keeps line structure exactly (same newlines in and out) and
+Punjabi books and PDFs) and `'anandpursahib'` (a phonetic layout; only the keys seen in
+real text are mapped so far, so the retroflexes and a few other letters are reported as
+unmapped rather than guessed). It keeps line structure exactly (same newlines in and out) and
 never drops input: ASCII punctuation passes through, and anything unmapped is kept and
 logged. Use `convert` to get those warnings as data:
 
@@ -92,8 +94,9 @@ maps its name to an encoding; that is more reliable than detection.
 
 `detect_encoding` guesses whether text is `'unicode'`, one of `ENCODINGS`, `'latin'`
 (English or romanised text: don't run it through the legacy converter) or `'unknown'`.
-AnmolLipi is recognised by its spelling structure; Asees and Joy by converting and
-looking the words up in the bundled Gurbani lexicon. They share their letter keys, so
+AnmolLipi is recognised by its spelling structure; Asees, Joy and AnandpurSahib by
+converting and looking the words up in the bundled Gurbani lexicon (lines of four or more
+words). They share their letter keys, so
 text without Joy's few distinct keys reads as `'asees'` (the output is the same).
 `detect_lines` returns one `EncodingGuess(label, score)` per line, for pages that mix
 legacy-font verses with romanised headings.

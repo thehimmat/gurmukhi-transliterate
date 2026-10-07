@@ -2,8 +2,8 @@
 Legacy encoding conversion system for Gurmukhi script.
 
 Handles conversion from:
-- Font-based encodings: the phonetic AnmolLipi/GurbaniAkhar layout and the
-  typewriter layout of Asees and Joy (``ENCODINGS``)
+- Font-based encodings: the phonetic AnmolLipi/GurbaniAkhar and AnandpurSahib
+  layouts and the typewriter layout of Asees and Joy (``ENCODINGS``)
 - Keyboard mappings (ASCII-based input)
 to Unicode Gurmukhi.
 
@@ -22,7 +22,7 @@ import unicodedata
 from dataclasses import asdict, dataclass, field
 from functools import lru_cache
 
-from ._legacy_layouts import ASEES_KEYS, JOY_COMBOS, JOY_KEYS
+from ._legacy_layouts import ANANDPUR_KEYS, ASEES_KEYS, JOY_COMBOS, JOY_KEYS
 
 
 @dataclass(frozen=True)
@@ -454,12 +454,12 @@ class GurmukhiLegacy:
                 plausible += weight
         if not total:
             return EncodingGuess('unknown', 0.0)
-        # Asees/Joy put letters on punctuation keys, so AnmolLipi's spelling
-        # rules can't judge them: convert and look the words up instead.
-        typewriter, found = max(((e, cls._lexicon_share(text, e)) for e in TYPEWRITER),
+        # Asees/Joy/AnandpurSahib put letters on punctuation keys, so AnmolLipi's
+        # spelling rules can't judge them: convert and look the words up instead.
+        lexical, found = max(((e, cls._lexicon_share(text, e)) for e in LEXICON_DETECTED),
                                 key=lambda x: x[1])
         if found >= cls.LEXICON_THRESHOLD and found > cls._lexicon_share(text, 'anmollipi'):
-            return EncodingGuess(typewriter, found)
+            return EncodingGuess(lexical, found)
         share = plausible / total
         if share >= cls.LEGACY_THRESHOLD:
             return EncodingGuess('anmollipi', share)
@@ -468,14 +468,21 @@ class GurmukhiLegacy:
     # Share of converted words found in the Gurbani lexicon needed to call text
     # Asees/Joy-encoded.
     LEXICON_THRESHOLD = 0.6
+    # fewer words than this is too little evidence (romanised 'tusin kiven ho')
+    LEXICON_MIN_WORDS = 4
 
     @classmethod
     def _lexicon_share(cls, text: str, encoding: str) -> float:
+        result = cls.convert(text, encoding)
+        # text the layout can't map (IPA, accented Latin) isn't in that font
+        if len(result.warnings) > 0.02 * sum(1 for c in text if not c.isspace()):
+            return 0.0
         # one-letter words match the lexicon by chance, so they don't count
-        words = [w for w in re.findall('[\u0A01-\u0A63\u0A70-\u0A75]+', cls.convert(text, encoding).text)
-                 if len(w) > 1]
+        words = [w for w in re.findall('[\u0A01-\u0A63\u0A70-\u0A75]+', result.text) if len(w) > 1]
+        if len(words) < cls.LEXICON_MIN_WORDS:
+            return 0.0
         lexicon = _lexicon_words()
-        return sum(w in lexicon for w in words) / len(words) if words else 0.0
+        return sum(w in lexicon for w in words) / len(words)
 
     @staticmethod
     def encoding_for_font(font_name: str) -> str | None:
@@ -491,15 +498,15 @@ class GurmukhiLegacy:
     @classmethod
     def detect_encoding(cls, text: str) -> str:
         """Guess the encoding of *text*: 'unicode', one of ``ENCODINGS``
-        ('anmollipi', 'asees', 'joy'), 'latin' or 'unknown'.
+        ('anmollipi', 'asees', 'joy', 'anandpursahib'), 'latin' or 'unknown'.
 
         'anmollipi' covers the GurbaniAkhar/AnmolLipi keyboard family. 'latin'
         means Latin-script text that isn't legacy Gurmukhi: English, or
         romanised Gurmukhi (see ``detect_latin`` for telling those apart).
 
-        Asees and Joy are recognised by converting the text and looking the
-        words up in the Gurbani lexicon; they share their letter keys, so text
-        without their few differing keys reads as 'asees'. AnmolLipi is
+        Asees, Joy and AnandpurSahib are recognised by converting the text and
+        looking the words up in the Gurbani lexicon. Asees and Joy share their
+        letter keys, so text without their few differing keys reads as 'asees'. AnmolLipi is
         recognised structurally: ASCII words are checked against its spelling
         rules. A short line made only of words that are also valid AnmolLipi
         (e.g. 'so is it') is genuinely ambiguous and reads as legacy. When
@@ -536,9 +543,13 @@ LAYOUTS = {
         'joy', 'Joy', keys=JOY_KEYS, combos=JOY_COMBOS, sihari=frozenset('f\xd0'),
         passthrough=frozenset(' \t\r\n0123456789,()'), fonts=('joy',),
         one_nasal_key=True, join_dandas=True),
+    'anandpursahib': Layout(
+        'anandpursahib', 'AnandpurSahib', keys=ANANDPUR_KEYS, combos={}, sihari=frozenset('i'),
+        passthrough=frozenset(' \t\r\n0123456789,.()-'), fonts=('anandpursahib',)),
 }
 ENCODINGS = tuple(LAYOUTS)
-TYPEWRITER = ('asees', 'joy')
+# Encodings recognised by converting and looking words up in the lexicon
+LEXICON_DETECTED = ('asees', 'joy', 'anandpursahib')
 
 
 def conversion_report(text: str, encoding: str | None = None, font: str | None = None) -> dict:
