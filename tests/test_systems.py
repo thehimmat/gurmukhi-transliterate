@@ -314,7 +314,7 @@ class TestAddak:
 # --- #21: addak / nasals in any position ------------------------------------
 
 MAP_DRIVEN = [s for s in __import__('gurmukhi_transliterate').SYSTEM_ORDER
-              if s not in ('sttm', 'banidb_ipa')]   # those use the anvaad-js port
+              if s not in ('sttm', 'banidb_ipa', 'shabados')]   # dedicated engines
 
 
 def _shape_cases():

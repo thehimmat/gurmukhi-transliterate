@@ -96,6 +96,23 @@ GurmukhiLegacy.detect_encoding('Hanūmān Nāṭak')           # 'latin'
 Real-text regression fixtures live in `tests/fixtures/legacy/` as parallel
 `<name>.gurbaniakhar.txt` / `<name>.unicode.txt` files, compared line by line.
 
+## Real-world schemes
+
+- **`sttm`** and **`banidb_ipa`** match BaniDB / SikhiToTheMax output byte for byte.
+  They run a line-for-line Python port of Khalis Foundation's
+  [anvaad-js](https://github.com/KhalisFoundation/anvaad-js) (MIT; the licence is
+  in `gurmukhi_transliterate/_anvaad_tables.py`), which is the code that produces
+  BaniDB's `english` and `ipa` fields. It's checked against 1,200 lines in
+  `tests/test_conformance.py`.
+- **`shabados`** reproduces Shabad OS English (`gurmukhi-utils` toEnglish). It's a
+  clean-room reimplementation built only from that library's output, so it's
+  close rather than exact: 96.9% of held-out lines and 99.5% of words match.
+- **Informal and 3HO spellings** (`Waheguru`, `Sat Sri Akal`, `Ek Ong Kaar`,
+  `Japji Sahib`, `Khalsa`, …) are covered by a table of 96 common terms and their
+  variants in `informal.py`. `reverse_words(..., system='informal')` uses it, and
+  `to_gurmukhi` tries it first. Matching ignores case, spacing, `w`/`v`, and
+  `ee`/`i`, `oo`/`u` and doubled letters.
+
 ## Verse matching (romanized or noisy Gurbani → canonical Gurmukhi)
 
 `match_verse` finds the canonical line for Gurbani written in any common

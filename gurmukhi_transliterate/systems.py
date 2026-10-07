@@ -497,6 +497,35 @@ SHACKLE = SystemMap(
 # Registry
 # ---------------------------------------------------------------------------
 
+SHABADOS = SystemMap(
+    id='shabados',
+    label='Shabad OS',
+    consonants={
+        'ਕ': 'k', 'ਖ': 'kh', 'ਗ': 'g', 'ਘ': 'gh', 'ਙ': 'ng',
+        'ਚ': 'ch', 'ਛ': 'chh', 'ਜ': 'j', 'ਝ': 'jh', 'ਞ': 'ny',
+        'ਟ': 'tt', 'ਠ': 'tth', 'ਡ': 'dd', 'ਢ': 'dt', 'ਣ': 'n',
+        'ਤ': 't', 'ਥ': 'th', 'ਦ': 'd', 'ਧ': 'dh', 'ਨ': 'n',
+        'ਪ': 'p', 'ਫ': 'f', 'ਬ': 'b', 'ਭ': 'bh', 'ਮ': 'm',
+        'ਯ': 'y', 'ਰ': 'r', 'ਲ': 'l', 'ਵ': 'v', 'ੜ': 'rr',
+        'ਸ': 's', 'ਹ': 'h',
+        'ਸ਼': 'sh', 'ਖ਼': 'kh', 'ਗ਼': 'g', 'ਜ਼': 'z', 'ਫ਼': 'f', 'ਲ਼': 'l', 'ਕ਼': 'k',
+    },
+    vowel_diacritics={'ਾ': 'aa', 'ਿ': 'i', 'ੀ': 'ee', 'ੁ': 'u', 'ੂ': 'oo',
+                      'ੇ': 'e', 'ੈ': 'ai', 'ੋ': 'o', 'ੌ': 'au'},
+    vowels={'ਅ': 'a', 'ਆ': 'aa', 'ਇ': 'i', 'ਈ': 'ee', 'ਉ': 'u', 'ਊ': 'aoo',
+            'ਏ': 'e', 'ਐ': 'ai', 'ਓ': 'o', 'ਔ': 'aau'},
+    nasal_tippi='n',
+    nasal_bindi='n',
+    subjoined={},
+    notes=(
+        'Shabad OS English, as produced by gurmukhi-utils toEnglish. Romanized by '
+        'shabados.py, a clean-room reimplementation derived only from the '
+        "library's output (never its GPL-3.0 source); this map is used only for "
+        'identification and comparison. Signatures: tt/tth/dd/rr for retroflexes, '
+        'dt for ਢ, single | for both dandas, addak not written, final ਿ/ੁ dropped.'
+    ),
+)
+
 SYSTEMS: dict[str, SystemMap] = {
     s.id: s for s in [
         DR_SANT_SINGH,
@@ -510,10 +539,11 @@ SYSTEMS: dict[str, SystemMap] = {
         SHACKLE,
         IPA,
         BANIDB_IPA,
+        SHABADOS,
     ]
 }
 
 SYSTEM_ORDER = [
     'dr_sant_singh', 'dr_thind', 'sttm', 'sttm_legacy', 'gursevak',
-    'gfs', 'sacred_nitnem', 'iast', 'shackle', 'ipa', 'banidb_ipa',
+    'gfs', 'sacred_nitnem', 'iast', 'shackle', 'ipa', 'banidb_ipa', 'shabados',
 ]
