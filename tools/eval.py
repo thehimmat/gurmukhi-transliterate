@@ -24,7 +24,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
-from gurmukhi_transliterate import GurmukhiLegacy, GurmukhiRomanizer, detect_latin, identify_system  # noqa: E402
+from gurmukhi_transliterate import (  # noqa: E402
+    CorpusMatcher, GurmukhiLegacy, GurmukhiRomanizer, detect_latin, identify_system,
+)
 from gurmukhi_transliterate.lexicon import load_lexicon, words  # noqa: E402
 from gurmukhi_transliterate.matcher import candidate_spellings  # noqa: E402
 from gurmukhi_transliterate.reverse import reverse_transliterate  # noqa: E402
@@ -266,8 +268,13 @@ def eval_system_reverse(gold: list[dict]) -> dict:
                      'hits': hits, 'gold_words': gold_words, 'chosen': chosen.most_common(2)})
     shackle_romans = _forward('shackle', ' '.join(vocab), False).split(' ')
     old = sum(shackle_to_gurmukhi(r) == w for w, r in zip(vocab, shackle_romans))
+    in_cands = sum(w in candidate_spellings(reverse_transliterate(r))[:64]
+                   for w, r in zip(vocab, shackle_romans))
+    matcher = CorpusMatcher(dict(load_lexicon()))
+    matched = sum(matcher.match(r).best == w for w, r in zip(vocab, shackle_romans))
     return {'round_trip': round_trip, 'real': real,
-            'shackle': {'n': len(vocab), 'rule_based': old,
+            'shackle': {'n': len(vocab), 'rule_based': old, 'in_candidates': in_cands,
+                        'matcher': matched,
                         'index': next(r['top1'] for r in round_trip
                                       if r['system'] == 'shackle' and not r['delete_schwa'])}}
 
@@ -380,8 +387,10 @@ def report(dakshina: Path | None = None, limit: int | None = None) -> str:
                   f"{pct(r['hits'], r['gold_words'])} | "
                   + ', '.join(f'{s} {n}' for s, n in r['chosen']) + ' |')
     sh = sr['shackle']
-    md.append(f"\nShackle round trip, exact words: rule-based `reverse_transliterate` "
-              f"{pct(sh['rule_based'], sh['n'])}, lexicon index {pct(sh['index'], sh['n'])}.")
+    md.append(f"\nShackle round trip over {sh['n']} gold words: rule-based `reverse_transliterate` "
+              f"{pct(sh['rule_based'], sh['n'])} exact, {pct(sh['in_candidates'], sh['n'])} including "
+              f"flagged candidates; `CorpusMatcher` with the bundled lexicon {pct(sh['matcher'], sh['n'])}; "
+              f"lexicon index {pct(sh['index'], sh['n'])}.")
 
     lx = eval_lexicon(gold)
     md += ['\n## Lexicon coverage\n',
