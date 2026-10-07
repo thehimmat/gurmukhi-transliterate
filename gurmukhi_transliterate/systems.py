@@ -90,6 +90,8 @@ DR_SANT_SINGH = SystemMap(
     nasal_tippi='n',
     nasal_bindi='n',
     subjoined={'੍ਰ': 'r', '੍ਵ': 'v', '੍ਹ': None, '੍ਤ': None, '੍ਯ': None},
+    # Labial m as in his prose (Ambreek, Gambheer); tentative, see #4.
+    nasal_by_class={'labial': 'm'},
     notes=(
         'Dots on retroflex letters (ṭ ḍ ṇ ṛ). '
         'Apostrophe marker ´H used for aspiration (Ṭ´H = ṭh). '
@@ -125,6 +127,8 @@ DR_THIND = SystemMap(
     nasal_tippi='n',
     nasal_bindi='n',
     subjoined={'੍ਰ': 'r', '੍ਵ': 'v', '੍ਹ': None, '੍ਤ': None, '੍ਯ': None},
+    # srigranth: tippi before a labial is m (kutamb, kamm, agamm), else n.
+    nasal_by_class={'labial': 'm'},
     notes=(
         'Used by SikhNet / fateh.sikhnet.com. '
         'Retroflex consonants not distinguished from dentals. '
@@ -339,6 +343,9 @@ IPA = SystemMap(
     nasal_tippi='ŋ',
     nasal_bindi='̃',   # combining tilde (nasalisation of preceding vowel)
     subjoined={'੍ਰ': 'r', '੍ਵ': 'ʋ', '੍ਹ': 'h', '੍ਤ': None, '੍ਯ': None},
+    # Phonetic: tippi assimilates to the following stop's place.
+    nasal_by_class={'velar': 'ŋ', 'palatal': 'ɲ', 'retroflex': 'ɳ',
+                    'dental': 'n', 'labial': 'm'},
     notes=(
         'Scientific IPA transcription. Inherent vowel is ə (schwa). '
         'Voiced h → ɦ. Tone/murmur marks (˥) used for breathy consonants. '

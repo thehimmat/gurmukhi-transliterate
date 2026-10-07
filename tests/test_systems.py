@@ -421,3 +421,25 @@ class TestHomorganicNasals:
         from gurmukhi_transliterate.reverse import shackle_to_gurmukhi
         for w in ('ਸੰਤ', 'ਸੰਕ', 'ਸੰਚ', 'ਸੰਟ', 'ਸੰਪ'):
             assert shackle_to_gurmukhi(rom('shackle', w)) == w
+
+
+class TestLabialNasalsByEvidence:
+    """Per docs/research/16-romanized-gurmukhi/notes/nasal_conventions.md."""
+
+    @pytest.mark.parametrize('sid', ['dr_thind', 'dr_sant_singh'])
+    def test_labial_m(self, sid):
+        assert rom(sid, 'ਕੰਮ') == 'kamma'
+        assert rom(sid, 'ਸੰਤ') == 'santa'          # other classes keep n
+
+    def test_ipa_full_class_table(self):
+        assert [rom('ipa', w)[1:3] for w in ('ਸੰਕ', 'ਸੰਚ', 'ਸੰਟ', 'ਸੰਤ', 'ਸੰਪ')] == \
+            ['əŋ', 'əɲ', 'əɳ', 'ən', 'əm']
+
+    @pytest.mark.parametrize('sid, expected', [
+        ('sttm', 'ka(n)ma'),            # BaniDB: ka(n)m — no labial switch
+        ('sttm_legacy', 'kanma'),       # iGurbani: kanm
+        ('banidb_ipa', 'kəŋmə'),
+        ('sacred_nitnem', 'kaṅma'),
+    ])
+    def test_fixed_nasal_systems_unchanged(self, sid, expected):
+        assert rom(sid, 'ਕੰਮ') == expected
