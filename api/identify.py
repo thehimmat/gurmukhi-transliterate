@@ -14,8 +14,9 @@ class handler(BaseHTTPRequestHandler):
         params = parse_qs(parsed.query)
         text = params.get("text", [""])[0]
         top_n = int(params.get("top_n", ["9"])[0])
+        include_english = params.get("include_english", [""])[0] in ("1", "true")
 
-        results = identify_system(text, top_n=top_n)
+        results = identify_system(text, top_n=top_n, include_english=include_english)
         body = json.dumps(results, ensure_ascii=False).encode()
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")

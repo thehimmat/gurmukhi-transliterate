@@ -13,6 +13,7 @@ from .reverse import (
 from .verse import Location, UnableToReverse, VerseMatch, match_verse, to_gurmukhi
 from .system_reverse import ReverseWords, WordCandidates, reverse_words
 from .informal import lookup_informal, reverse_informal
+from .language import LatinGuess, LatinWord, detect_latin
 from .matcher import (
     CorpusMatcher,
     MatchResult,
@@ -52,4 +53,7 @@ __all__ = [
     "WordCandidates",
     "lookup_informal",
     "reverse_informal",
+    "detect_latin",
+    "LatinGuess",
+    "LatinWord",
 ]

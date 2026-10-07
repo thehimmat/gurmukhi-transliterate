@@ -162,6 +162,33 @@ the lexicon (and spellings the system maps don't produce yet, see #26) aren't
 reversed. An index is built the first time each system is used, which takes
 about a second.
 
+## English or romanized? Which system?
+
+`detect_latin` tells English from romanized Gurmukhi, line by line and word by
+word. `identify_system` ranks the romanization systems that could have written
+a line. Both score words with character-trigram models: one per system, trained
+on its romanization of the bundled lexicon, and one for English, trained on
+SCOWL.
+
+```python
+from gurmukhi_transliterate import detect_latin, identify_system
+
+detect_latin('The English translation of the text').label   # 'english'
+detect_latin('mera phone kharab ho gaya').label             # 'romanized'
+detect_latin('Guru Gobind Singh').label                     # 'unknown' (names only: abstains)
+
+identify_system('kiv sachiaaraa hoieeaai kiv kooRai tuTai paal')[0]
+# {'system': 'sttm', 'label': ..., 'confidence': 0.999, 'equivalent': True}
+identify_system('Sat Sri Akal')[0]['system']                 # 'informal'
+identify_system('The quick brown fox', include_english=True)[0]['system']  # 'english'
+```
+
+`equivalent` marks the systems the text can't tell apart from the best one,
+for example IAST and Shackle, which write most lines identically. On gold
+lines of 5+ words, the true system is ranked first or marked equivalent to it
+95–100% of the time (`docs/eval/baseline.md`). `to_gurmukhi` refuses lines that
+read as English, and `reverse_words` tries systems in `identify_system`'s order.
+
 ## Develop
 
 ```bash

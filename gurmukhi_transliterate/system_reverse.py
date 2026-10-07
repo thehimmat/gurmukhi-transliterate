@@ -14,8 +14,8 @@ Lookup is therefore exact for lexicon words and follows every forward rule
 lexicon are reported in ``missing``; nothing is guessed.
 
 An index is built on first use of its system (about a second). Without
-``system=``, systems are tried in an order suggested by the input's
-characters until one explains every word.
+``system=``, the systems identify_system ranks highest are tried in order
+until one explains every word.
 """
 
 from __future__ import annotations
@@ -36,15 +36,8 @@ from .systems import SYSTEM_ORDER
 ALL_SYSTEMS = ('iso15919', 'practical', *SYSTEM_ORDER)
 INFORMAL = 'informal'   # common informal/3HO spellings (informal.py), not a system map
 
-# Which systems to try, in order, given the characters in the input.
-_IPA_CHARS = set('ɪəɑʊɛæɔŋɲɳɽɾɹʋɦʃʈɖʒ')
-_FAMILIES = {
-    'ipa': ('banidb_ipa', 'ipa'),
-    'diacritics': ('iso15919', 'iast', 'shackle', 'sacred_nitnem', 'dr_sant_singh', 'gursevak'),
-    'banidb': ('sttm', 'sttm_legacy', 'practical'),
-    'ascii': ('sttm', 'shabados', 'practical', 'dr_thind', 'dr_sant_singh', 'sttm_legacy', 'gfs',
-              'gursevak'),
-}
+# Without system=, how many of identify_system's top systems to try
+_TRY = 4
 
 # words may contain BaniDB's parenthesised nasal, a(n)mrit; other brackets are punctuation
 _TOKEN = re.compile(r'\s+|\|\||\||\d+|(?:\(n\)|[^\s|\d.,;:!?()\[\]"])+|[.,;:!?()\[\]"]')
@@ -151,15 +144,12 @@ def _reverse_with(system: str, text: str) -> ReverseWords:
     return result
 
 
-def _candidate_systems(text: str) -> tuple[str, ...]:
-    if any(ch in _IPA_CHARS for ch in text):
-        return _FAMILIES['ipa']
-    decomposed = unicodedata.normalize('NFD', text)
-    if any(unicodedata.combining(ch) for ch in decomposed) or not text.isascii():
-        return _FAMILIES['diacritics']
-    if '(n)' in text or re.search(r'[a-z][TR]', text):
-        return _FAMILIES['banidb']
-    return _FAMILIES['ascii']
+def _candidate_systems(text: str) -> list[str]:
+    """Systems to try, best guess first: identify_system's ranking, widened to
+    every system it can't tell apart from the best."""
+    from .compare import identify_system
+    ranked = identify_system(text, top_n=len(ALL_SYSTEMS))
+    return [r['system'] for i, r in enumerate(ranked) if i < _TRY or r['equivalent']]
 
 
 def _reverse_informal(text: str) -> ReverseWords:
@@ -174,8 +164,8 @@ def reverse_words(text: str, system: str | None = None) -> ReverseWords:
 
     *system* may also be ``'informal'``: the table of common informal/3HO
     spellings (Waheguru, Sat Sri Akal, …). With *system* None, plain-ASCII
-    input is first checked against that table, then candidate systems (chosen
-    from the input's characters) are tried in order until one explains every
+    input is first checked against that table, then the systems
+    identify_system ranks highest are tried in order until one explains every
     word; otherwise the one that explains the most words (ties: the higher
     total frequency) is returned.
     """
