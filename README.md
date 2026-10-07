@@ -96,6 +96,31 @@ GurmukhiLegacy.detect_encoding('Hanūmān Nāṭak')           # 'latin'
 Real-text regression fixtures live in `tests/fixtures/legacy/` as parallel
 `<name>.gurbaniakhar.txt` / `<name>.unicode.txt` files, compared line by line.
 
+## Verse matching (romanized or noisy Gurbani → canonical Gurmukhi)
+
+`match_verse` finds the canonical line for Gurbani written in any common
+romanization (BaniDB/SikhiToTheMax, Shabad OS, ISO, IAST, IPA, informal), in
+GurbaniAkhar ASCII, or as OCR-damaged Unicode. It searches the ~141k lines of
+Guru Granth Sahib, Dasam Granth, Bhai Gurdas and Bhai Nand Lal bundled with the
+package, and returns an empty list when nothing matches confidently.
+
+```python
+from gurmukhi_transliterate import match_verse, to_gurmukhi
+
+m = match_verse('kiv sachiaaraa hoieeaai kiv kooRai tuTai paal')[0]
+m.gurmukhi, m.source, m.page     # ('ਕਿਵ ਸਚਿਆਰਾ ਹੋਈਐ ਕਿਵ ਕੂੜੈ ਤੁਟੈ ਪਾਲਿ ॥', 'sggs', 1)
+m.locations                      # every place the line occurs (repeated lines share one match)
+
+to_gurmukhi('hukam rajaiee chalanaa naanak likhiaa naal')   # 'ਹੁਕਮਿ ਰਜਾਈ ਚਲਣਾ ਨਾਨਕ ਲਿਖਿਆ ਨਾਲਿ ॥੧॥'
+to_gurmukhi('mera phone kharab ho gaya')                    # raises UnableToReverse
+```
+
+On real romanized lines it gets about 99.5% top-1 and 100% top-3. Lines of three
+or more words can match a half-line (the start or end of a verse); shorter
+headings must match a whole line. The index is built on first use, which takes
+a few seconds; after that a query takes about 10 ms. Numbers and method are in
+`docs/eval/baseline.md`.
+
 ## Develop
 
 ```bash

@@ -28,3 +28,12 @@ Word frequencies of Gurbani and related texts, used to rank candidate spellings
 | bhai_nand_lal (largely Persian vocabulary) | 3,978 | 15,788 |
 | other (Sarabloh Granth excerpts, Ardas) | 452 | 766 |
 | **all** | **67,355** | **916,380** |
+
+## lines.tsv.gz
+
+This is the corpus that `match_verse` searches: every primary line of the same
+Shabad OS release (141,264 lines), in reading order. The columns are `id`,
+`source`, `shabad` (line group), `page` (ang for SGGS), `line` and `gurmukhi`.
+Vishraam marks were removed; the words are unchanged. The same public-domain
+terms apply. Rebuild it with `python tools/build_corpus.py path/to/master.sqlite`
+(the output is byte-for-byte reproducible).
