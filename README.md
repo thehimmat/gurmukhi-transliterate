@@ -101,7 +101,24 @@ Real-text regression fixtures live in `tests/fixtures/legacy/` as parallel
 ```bash
 pip install -e ".[dev]"
 pytest
+python tools/eval.py          # scores against real romanized text; see docs/eval/baseline.md
 ```
+
+### Bundled word list
+
+`gurmukhi_transliterate.lexicon.load_lexicon()` returns word counts for Gurbani
+(Guru Granth Sahib, Dasam Granth, Bhai Gurdas and Bhai Nand Lal), taken from
+the public-domain Shabad OS database. You can pass a list of sources, e.g.
+`load_lexicon(['sggs'])`. Provenance is in `gurmukhi_transliterate/data/README.md`.
+Rebuild it with `python tools/build_lexicon.py master.sqlite`.
+
+### Evaluation data
+
+`tests/fixtures/gold/` holds 500 public-domain lines, each romanized by the
+scheme's own code (BaniDB's `anvaad-js`, Shabad OS's `gurmukhi-utils`), plus
+English negatives. Rebuild it with `python tools/build_gold.py master.sqlite`
+(needs Node/npm). `tools/eval.py --dakshina DIR` also scores the Dakshina
+Punjabi test set, which isn't committed because it's CC BY-SA.
 
 ---
 
