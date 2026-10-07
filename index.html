@@ -488,7 +488,7 @@
 
     <div class="section-label" style="margin-bottom:1rem">Legacy font to Unicode</div>
     <div class="legacy-row">
-      <textarea id="legacy-input" placeholder="AnmolLipi / legacy font text" style="min-height:60px"></textarea>
+      <textarea id="legacy-input" placeholder="AnmolLipi, Asees, Joy or AnandpurSahib font text" style="min-height:60px"></textarea>
       <span class="arrow">→</span>
       <div class="legacy-result empty" id="legacy-output">—</div>
     </div>
@@ -649,15 +649,8 @@
     installKeyboard(document.getElementById('input'));
     // ── End keyboard ─────────────────────────────────────────────────────────
 
-    const SYSTEMS = [
-      {id: 'dr_sant_singh', label: 'Dr. Sant Singh Khalsa'},
-      {id: 'dr_thind', label: 'Dr. Kulbir S. Thind'},
-      {id: 'sttm', label: 'SikhiToTheMax'},
-      {id: 'gfs', label: 'Guru Fatha Singh'},
-      {id: 'sacred_nitnem', label: 'Sacred Nitnem'},
-      {id: 'iast', label: 'IAST'},
-      {id: 'ipa', label: 'IPA'},
-    ];
+    // HTML-escape text before putting it in innerHTML
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'})[c]);
 
     const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
@@ -682,21 +675,29 @@
     const activeSystems = new Set();
     const otherCards = {};
 
-    SYSTEMS.forEach(sys => {
+    // The system list comes from the library (/api/systems), so it can't drift.
+    const LABELS = {};
+    const systemsLoaded = fetch('/api/systems').then(r => r.json()).then(list => {
+      list.forEach(s => { LABELS[s.id] = s.label; });
+      list.filter(s => s.id !== 'iso15919' && s.id !== 'practical').forEach(addSystemChip);
+    });
+
+    function addSystemChip(sys) {
       const chip = document.createElement('label');
       chip.className = 'sys-check';
-      chip.innerHTML = `<input type="checkbox" value="${sys.id}"><span>${sys.label}</span>`;
-      chip.addEventListener('click', () => {
-        const cb = chip.querySelector('input');
-        const willCheck = !cb.checked;
-        if (willCheck) {
+      chip.innerHTML = `<input type="checkbox" value="${esc(sys.id)}"><span>${esc(sys.label)}</span>`;
+      // 'change' fires once per toggle; a click on the label also clicks the
+      // hidden checkbox, so a 'click' handler here ran twice and undid itself
+      const cb = chip.querySelector('input');
+      cb.addEventListener('change', () => {
+        if (cb.checked) {
           activeSystems.add(sys.id);
           chip.classList.add('active');
           if (!otherCards[sys.id]) {
             const card = document.createElement('div');
             card.className = 'card';
-            card.innerHTML = `<div class="card-label">${sys.label}</div>
-                              <div class="card-value empty" id="other-${sys.id}">—</div>`;
+            card.innerHTML = `<div class="card-label">${esc(sys.label)}</div>
+                              <div class="card-value empty" id="other-${esc(sys.id)}">—</div>`;
             otherResults.appendChild(card);
             otherCards[sys.id] = document.getElementById('other-' + sys.id);
           }
@@ -709,7 +710,7 @@
         updateOther(inputEl.value);
       });
       otherCheckboxes.appendChild(chip);
-    });
+    }
 
     const updateOther = debounce(async (text) => {
       for (const sid of activeSystems) {
@@ -754,11 +755,10 @@
       if (!text) return;
       const schwa = schwaToggle.checked ? '&schwa=1' : '';
       const data = await fetch('/api/compare?text=' + encodeURIComponent(text) + schwa).then(r => r.json());
-      const labels = { iso15919: 'ISO 15919', practical: 'Practical' };
-      SYSTEMS.forEach(s => { labels[s.id] = s.label; });
+      await systemsLoaded;
       compareBody.innerHTML = Object.entries(data)
         .map(([sid, val]) =>
-          `<tr><td class="sys-name">${labels[sid] || sid}</td><td class="rom-val">${val}</td></tr>`
+          `<tr><td class="sys-name">${esc(LABELS[sid] || sid)}</td><td class="rom-val">${esc(val)}</td></tr>`
         ).join('');
       compareModal.classList.add('open');
     });
@@ -768,6 +768,7 @@
       const notes = [];
       if (data.encoding === 'latin') notes.push('This looks like Latin-script text (English or romanised), not a legacy font.');
       if (data.encoding === 'unicode') notes.push('This is already Unicode Gurmukhi.');
+      if (data.converted_with && data.converted_with !== 'anmollipi') notes.push('Converted as ' + data.converted_with + '.');
       const unmapped = [...new Set(data.warnings.filter(w => w.kind === 'unmapped').map(w => w.char))];
       if (unmapped.length) notes.push('Unmapped characters kept as-is: ' + unmapped.join(' '));
       const orphans = data.warnings.filter(w => w.kind === 'orphan_sihari').length;
@@ -797,10 +798,10 @@
     identifyBtn.addEventListener('click', async () => {
       const text = identifyInput.value.trim();
       if (!text) return;
-      const data = await fetch('/api/identify?text=' + encodeURIComponent(text)).then(r => r.json());
+      const data = await fetch('/api/identify?include_english=1&text=' + encodeURIComponent(text)).then(r => r.json());
       identifyResults.innerHTML = data.map(r =>
         `<div class="id-row">
-          <span class="id-label">${r.label}</span>
+          <span class="id-label">${esc(r.label)}</span>
           <div class="id-bar-wrap"><div class="id-bar" style="width:${Math.round(r.confidence * 100)}%"></div></div>
           <span class="id-score">${Math.round(r.confidence * 100)}%</span>
         </div>`

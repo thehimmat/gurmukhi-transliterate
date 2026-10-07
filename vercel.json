@@ -1,10 +1,32 @@
 {
   "rewrites": [
-    { "source": "/api/transliterate", "destination": "/api/transliterate" },
-    { "source": "/api/legacy", "destination": "/api/legacy" },
-    { "source": "/api/other", "destination": "/api/other" },
-    { "source": "/api/compare", "destination": "/api/compare" },
-    { "source": "/api/identify", "destination": "/api/identify" },
-    { "source": "/", "destination": "/index.html" }
+    {
+      "source": "/api/transliterate",
+      "destination": "/api/transliterate"
+    },
+    {
+      "source": "/api/legacy",
+      "destination": "/api/legacy"
+    },
+    {
+      "source": "/api/other",
+      "destination": "/api/other"
+    },
+    {
+      "source": "/api/compare",
+      "destination": "/api/compare"
+    },
+    {
+      "source": "/api/identify",
+      "destination": "/api/identify"
+    },
+    {
+      "source": "/api/systems",
+      "destination": "/api/systems"
+    },
+    {
+      "source": "/",
+      "destination": "/index.html"
+    }
   ]
 }
