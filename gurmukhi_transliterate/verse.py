@@ -194,6 +194,7 @@ class _Corpus:
         self.text: list[str] = []
         self.loc: list[Location] = []
         self.skel: list[str] = []
+        self.nwords: list[int] = []
         firsts: dict[str, array] = defaultdict(lambda: array('I'))
         words: dict[str, array] = defaultdict(lambda: array('I'))
         self.exact: dict[str, list[int]] = defaultdict(list)
@@ -206,6 +207,7 @@ class _Corpus:
             first, skels = _g_parts(text)
             skel = ''.join(skels)
             self.skel.append(skel)
+            self.nwords.append(len(first))
             self.exact[skel].append(i)
             self.same[text].append(i)
             for gram in {first[k:k + 3] for k in range(max(1, len(first) - 2))}:
@@ -293,6 +295,8 @@ def match_verse(text: str, top_n: int = 3, min_score: float = MIN_SCORE) -> list
     for i, _ in votes.most_common(_CANDIDATES):
         cand = corpus.skel[i]
         if short:
+            if corpus.nwords[i] != len(first):
+                continue  # a heading must match the whole line, word for word
             score = 1 - _global(skel, cand) / max(len(skel), len(cand))
         else:
             score = 1 - _anchored(skel, cand) / len(skel)
@@ -309,17 +313,28 @@ def match_verse(text: str, top_n: int = 3, min_score: float = MIN_SCORE) -> list
 
 
 def to_gurmukhi(text: str) -> str:
-    """Return the canonical Gurmukhi for each line of *text*.
+    """Return Gurmukhi for each line of *text*.
 
-    Raises UnableToReverse naming the first line that doesn't match a verse.
+    Each line is first matched to a canonical verse (match_verse); failing
+    that, it is reversed word by word with a known romanization system
+    (reverse_words). Raises UnableToReverse, naming the words that couldn't be
+    reversed, rather than guessing.
     """
+    from .system_reverse import reverse_words
+
     out = []
     for line in text.split('\n'):
         if not line.strip():
             out.append(line)
             continue
         matches = match_verse(line, top_n=1)
-        if not matches:
-            raise UnableToReverse(f'unable to reverse transliterate: {line!r}')
-        out.append(matches[0].gurmukhi)
+        if matches:
+            out.append(matches[0].gurmukhi)
+            continue
+        words = reverse_words(line)
+        if words.gurmukhi is None:
+            raise UnableToReverse(
+                f'unable to reverse transliterate {line!r}: no known spelling for '
+                + ', '.join(repr(w) for w in words.missing))
+        out.append(words.gurmukhi)
     return '\n'.join(out)

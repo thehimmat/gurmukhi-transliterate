@@ -11,6 +11,7 @@ from .reverse import (
     Ambiguity,
 )
 from .verse import Location, UnableToReverse, VerseMatch, match_verse, to_gurmukhi
+from .system_reverse import ReverseWords, WordCandidates, reverse_words
 from .matcher import (
     CorpusMatcher,
     MatchResult,
@@ -45,4 +46,7 @@ __all__ = [
     "VerseMatch",
     "Location",
     "UnableToReverse",
+    "reverse_words",
+    "ReverseWords",
+    "WordCandidates",
 ]
