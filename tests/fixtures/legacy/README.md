@@ -10,6 +10,8 @@ scripture and historical text) is included, never a modern translation.
 | `chandi_charitar.joy.txt` | unnamed 1990s Joy-like font (`MSTT31c5cb`) | Chandi Charitar II, Punjabi edition PDF | every word matches the canonical Dasam Granth line (`match_verse`) |
 | `gur_sobha.asees.txt` | Asees | Sri Gur Sobha (Sainapati), Institute of Sikh Studies, 2014 | every word is in the Gurbani lexicon; hand-checked against the book (2026-10-07) |
 | `zafarnama.anandpursahib.txt` | AnandpurSahib | Zafarnama with Persian text and English translation (2005 PDF) | every word appears in the Dasam Granth's Zafarnama |
+| `nitnem_nangali.satluj.txt` | Satluj (bold) | Nitnem Sahib (Nangali), gutka PDF | every word matches the canonical line (`match_verse`) |
+| `gutka_nitnem.sony.txt` | SONY (SONYBoldA) | Gutka Sahib Nitnem (2019) PDF | every word matches the canonical line (`match_verse`) |
 | `gur_sobha_joy.joy.txt` | Joy | the same book's introduction (quoted verse) | every word is in the Gurbani lexicon; hand-checked against the book (2026-10-07) |
 
 The legacy text is the PDFs' text layer, decoded as Windows-1252. For the
