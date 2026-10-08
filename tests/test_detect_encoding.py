@@ -1,6 +1,8 @@
 import pytest
 from gurmukhi_transliterate import GurmukhiLegacy, EncodingGuess
 
+pytestmark = pytest.mark.story('US-003', 'US-005')
+
 detect = GurmukhiLegacy.detect_encoding
 
 GURBANI_AKHAR = [

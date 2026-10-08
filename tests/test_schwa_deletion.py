@@ -26,6 +26,7 @@ def prac(text):
 # ISO 15919 with schwa deletion
 # ---------------------------------------------------------------------------
 
+@pytest.mark.story('US-001')
 class TestISO15919SchwaDeletion:
     def test_word_final_simple(self):
         # R1: ਮ is word-final
@@ -66,6 +67,7 @@ class TestISO15919SchwaDeletion:
 # Practical with schwa deletion
 # ---------------------------------------------------------------------------
 
+@pytest.mark.story('US-002')
 class TestPracticalSchwaDeletion:
     def test_word_final_simple(self):
         assert prac('ਰਾਮ') == 'raam'
@@ -101,6 +103,7 @@ class TestPracticalSchwaDeletion:
 # Existing behaviour (delete_schwa=False) must not change
 # ---------------------------------------------------------------------------
 
+@pytest.mark.story('US-001')
 class TestNoRegressionISO:
     def test_default_off(self):
         assert GurmukhiISO15919.to_phonetic('ਸਿੰਘ') == 'siṃgha'
@@ -111,6 +114,7 @@ class TestNoRegressionISO:
         assert GurmukhiISO15919.to_phonetic('ਸਿੰਘ', delete_schwa=False) == 'siṃgha'
 
 
+@pytest.mark.story('US-002')
 class TestNoRegressionPractical:
     def test_default_off(self):
         assert GurmukhiPractical.to_practical('ਸਿੰਘ') == 'singha'
@@ -121,6 +125,7 @@ class TestNoRegressionPractical:
 # #24: a consonant followed by an independent vowel keeps its schwa
 # ---------------------------------------------------------------------------
 
+@pytest.mark.story('US-001')
 class TestSchwaBeforeIndependentVowel:
     @pytest.mark.parametrize('gurmukhi, expected', [
         ('ਹੋਵਈ', 'hovaī'),

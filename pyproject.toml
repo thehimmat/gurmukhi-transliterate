@@ -22,3 +22,4 @@ gurmukhi_transliterate = ["data/*.tsv.gz", "data/README.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--strict-markers -p pytester"

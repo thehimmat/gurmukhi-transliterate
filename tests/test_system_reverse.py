@@ -5,6 +5,8 @@ from gurmukhi_transliterate import (
     UnableToReverse, reverse_words, to_gurmukhi,
 )
 
+pytestmark = pytest.mark.story('US-010')
+
 ALL_SYSTEMS = ['iso15919', 'practical'] + SYSTEM_ORDER
 WORDS = ['ਨਾਨਕ', 'ਸਤਿਗੁਰ', 'ਹਰਿ', 'ਨਾਮੁ', 'ਪ੍ਰਭ', 'ਸਿੱਖ', 'ਅੰਮ੍ਰਿਤੁ']
 

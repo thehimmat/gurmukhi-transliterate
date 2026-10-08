@@ -14,6 +14,8 @@ import pytest
 
 from gurmukhi_transliterate import GurmukhiRomanizer
 
+pytestmark = pytest.mark.story('US-004')
+
 FIXTURE = pathlib.Path(__file__).parent / 'fixtures' / 'conformance.tsv'
 
 
