@@ -182,7 +182,7 @@ STTM_LEGACY = SystemMap(
     consonants={
         'ਸ': 's', 'ਹ': 'h',
         'ਕ': 'k', 'ਖ': 'kh', 'ਗ': 'g', 'ਘ': 'gh', 'ਙ': 'n(g)',
-        'ਚ': 'ch', 'ਛ': 'shh', 'ਜ': 'j', 'ਝ': 'jh', 'ਞ': 'n',
+        'ਚ': 'ch', 'ਛ': 'shh', 'ਜ': 'j', 'ਝ': 'jh', 'ਞ': 'nj',
         # tt/dd for retroflex; th/dh for dental aspirates
         'ਟ': 'tt', 'ਠ': 'th', 'ਡ': 'dd', 'ਢ': 'dt', 'ਣ': 'n',
         'ਤ': 'th', 'ਥ': 'thh', 'ਦ': 'dh', 'ਧ': 'dhh', 'ਨ': 'n',
@@ -210,7 +210,9 @@ STTM_LEGACY = SystemMap(
         'sathnaam, ਏਕ → eaek, ਕੌਣੁ → kaan). Heavy use of doubled letters; '
         'n and ṇ are the same. ਛ → shh (unusual), ੌ → a (simplified). '
         'Independent vowels get glides: ਇ → ei, ਉ/ਓ → ou, ਏ → eae. '
-        'Also used by Gurbani Anywhere.'
+        'Also used by Gurbani Anywhere. The letter table is checked against '
+        'igurbani.com output (tests/fixtures/igurbani.tsv); its spelling rules '
+        'are not modelled yet (#48).'
     ),
 )
 
