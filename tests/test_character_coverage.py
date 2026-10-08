@@ -21,6 +21,8 @@ Explicitly excluded (renders as boxes in Noto Serif):
 import pytest
 from gurmukhi_transliterate import SYSTEMS
 
+pytestmark = pytest.mark.story('US-004')
+
 # ---------------------------------------------------------------------------
 # Safe ranges
 # ---------------------------------------------------------------------------

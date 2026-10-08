@@ -7,6 +7,8 @@ import pytest
 
 from gurmukhi_transliterate import LatinGuess, LatinWord, detect_latin
 
+pytestmark = pytest.mark.story('US-005')
+
 GOLD = pathlib.Path(__file__).parent / 'fixtures' / 'gold'
 
 

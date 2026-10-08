@@ -9,6 +9,10 @@ import sys
 import os
 import importlib.util
 
+import pytest
+
+pytestmark = pytest.mark.story('US-006')
+
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, PROJECT_ROOT)
 

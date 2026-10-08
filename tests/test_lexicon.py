@@ -2,6 +2,8 @@ import unicodedata
 import pytest
 from gurmukhi_transliterate.lexicon import SOURCES, load_lexicon
 
+pytestmark = pytest.mark.story('US-009')
+
 
 @pytest.fixture(scope='module')
 def lex():

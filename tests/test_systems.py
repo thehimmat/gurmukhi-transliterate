@@ -3,6 +3,8 @@
 import pytest
 from gurmukhi_transliterate import GurmukhiRomanizer, SYSTEMS, SYSTEM_ORDER
 
+pytestmark = pytest.mark.story('US-004')
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -234,6 +236,7 @@ class TestIAST:
 # Shackle (Sacred Language of the Sikhs)
 # ---------------------------------------------------------------------------
 
+@pytest.mark.story('US-007')
 class TestShackle:
     """Expectations from Shackle, A Guru Nanak Glossary (2011), pp. xxi-xxv."""
 
@@ -417,6 +420,7 @@ class TestSubjoined:
         assert rom('dr_sant_singh', 'ਪੜ੍ਹ') == c['ਪ'] + 'a' + c['ੜ'] + c['ਹ'] + 'a'
 
 
+@pytest.mark.story('US-007', 'US-008')
 class TestHomorganicNasals:
     """Shackle §5: tippi before a stop is written as that stop's class nasal."""
 
