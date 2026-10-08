@@ -2,8 +2,9 @@
 Legacy encoding conversion system for Gurmukhi script.
 
 Handles conversion from:
-- Font-based encodings: the phonetic AnmolLipi/GurbaniAkhar and AnandpurSahib
-  layouts and the typewriter layout of Asees and Joy (``ENCODINGS``)
+- Font-based encodings (``ENCODINGS``): the phonetic AnmolLipi/GurbaniAkhar,
+  AnandpurSahib and SONY layouts, the typewriter layout of Asees and Joy, and
+  Satluj (letters on Latin-1 keys)
 - Keyboard mappings (ASCII-based input)
 to Unicode Gurmukhi.
 
@@ -22,7 +23,7 @@ import unicodedata
 from dataclasses import asdict, dataclass, field
 from functools import lru_cache
 
-from ._legacy_layouts import ANANDPUR_KEYS, ASEES_KEYS, JOY_COMBOS, JOY_KEYS
+from ._legacy_layouts import ANANDPUR_KEYS, ASEES_KEYS, JOY_COMBOS, JOY_KEYS, SATLUJ_KEYS, SONY_KEYS
 
 
 @dataclass(frozen=True)
@@ -62,7 +63,10 @@ class Layout:
 
 # Independent vowels some layouts build from a carrier plus a sign
 _COMPOSE = (('ਅਾ', 'ਆ'), ('ਅੈ', 'ਐ'), ('ਅੌ', 'ਔ'), ('ੲਿ', 'ਇ'), ('ੲੀ', 'ਈ'), ('ੲੇ', 'ਏ'),
-            ('ੳੁ', 'ਉ'), ('ੳੂ', 'ਊ'), ('ੳੋ', 'ਓ'))
+            ('ੳੁ', 'ਉ'), ('ੳੂ', 'ਊ'), ('ੳੋ', 'ਓ'), ('ਉੂ', 'ਊ'))
+# Fonts let a nasal or addak be typed before the vowel sign below the letter;
+# Unicode puts the vowel sign first (ਸਮੁੰਦ, not ਸਮੰੁਦ)
+_SIGN_FIRST = re.compile('([ੰਂੱ])([ੁੂ])')
 # Bindi, not tippi, goes with these vowels
 _BINDI_AFTER = re.compile('(?<=[ਾੀੇੈੋੌਆਈਏਐਓਔ])ੰ')
 # Keys whose output joins the preceding consonant: nukta, virama, yakash
@@ -380,6 +384,7 @@ class GurmukhiLegacy:
 
         flush_orphan()
         out = ''.join(chars)
+        out = _SIGN_FIRST.sub(r'\2\1', out)
         for parts, vowel in _COMPOSE:
             out = out.replace(parts, vowel)
         if layout.one_nasal_key:
@@ -498,14 +503,15 @@ class GurmukhiLegacy:
     @classmethod
     def detect_encoding(cls, text: str) -> str:
         """Guess the encoding of *text*: 'unicode', one of ``ENCODINGS``
-        ('anmollipi', 'asees', 'joy', 'anandpursahib'), 'latin' or 'unknown'.
+        ('anmollipi', 'asees', 'joy', 'anandpursahib', 'satluj', 'sony'), 'latin' or
+        'unknown'.
 
         'anmollipi' covers the GurbaniAkhar/AnmolLipi keyboard family. 'latin'
         means Latin-script text that isn't legacy Gurmukhi: English, or
         romanised Gurmukhi (see ``detect_latin`` for telling those apart).
 
-        Asees, Joy and AnandpurSahib are recognised by converting the text and
-        looking the words up in the Gurbani lexicon. Asees and Joy share their
+        The other layouts are recognised by converting the text and looking
+        the words up in the Gurbani lexicon. Asees and Joy share their
         letter keys, so text without their few differing keys reads as 'asees'. AnmolLipi is
         recognised structurally: ASCII words are checked against its spelling
         rules. A short line made only of words that are also valid AnmolLipi
@@ -534,7 +540,8 @@ LAYOUTS = {
         combos=_ANMOLLIPI.SPECIAL_COMBINATIONS,
         sihari=frozenset(_ANMOLLIPI.SIHARI_KEY),
         passthrough=frozenset(_ANMOLLIPI.PASSTHROUGH),
-        fonts=('anmollipi', 'gurbaniakhar', 'gurbanilipi', 'prabhki', 'webakhar')),
+        fonts=('anmollipi', 'gurbaniakhar', 'gurbanilipi', 'gurbaniweb', 'prabhki', 'webakhar',
+               'lordbold', 'lordnormal', 'godbold', 'godnormal')),
     'asees': Layout(
         'asees', 'Asees', keys=ASEES_KEYS, combos={}, sihari=frozenset('f'),
         passthrough=frozenset(' \t\r\n0123456789,()'), fonts=('asees',),
@@ -546,10 +553,16 @@ LAYOUTS = {
     'anandpursahib': Layout(
         'anandpursahib', 'AnandpurSahib', keys=ANANDPUR_KEYS, combos={}, sihari=frozenset('i'),
         passthrough=frozenset(' \t\r\n0123456789,.()-'), fonts=('anandpursahib',)),
+    'satluj': Layout(
+        'satluj', 'Satluj', keys=SATLUJ_KEYS, combos={}, sihari=frozenset('Ç'),
+        passthrough=frozenset(' \t\r\n,.()-/:'), fonts=('satluj',)),
+    'sony': Layout(
+        'sony', 'SONY', keys=SONY_KEYS, combos={}, sihari=frozenset('d'),
+        passthrough=frozenset(' \t\r\n()-!'), fonts=('sony',), join_dandas=True),
 }
 ENCODINGS = tuple(LAYOUTS)
 # Encodings recognised by converting and looking words up in the lexicon
-LEXICON_DETECTED = ('asees', 'joy', 'anandpursahib')
+LEXICON_DETECTED = ('asees', 'joy', 'anandpursahib', 'satluj', 'sony')
 
 
 def conversion_report(text: str, encoding: str | None = None, font: str | None = None) -> dict:

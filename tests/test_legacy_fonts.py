@@ -1,4 +1,4 @@
-"""Asees, Joy and AnandpurSahib legacy fonts, encoding detection and font hints (#19)."""
+"""Asees, Joy, AnandpurSahib, Satluj and SONY legacy fonts, encoding detection and font hints (#19)."""
 
 import pathlib
 
@@ -9,7 +9,7 @@ from gurmukhi_transliterate.legacy import ENCODINGS
 
 FIXTURES = pathlib.Path(__file__).parent / 'fixtures' / 'legacy'
 CASES = [('chandi_charitar', 'joy'), ('gur_sobha', 'asees'), ('gur_sobha_joy', 'joy'),
-         ('zafarnama', 'anandpursahib')]
+         ('zafarnama', 'anandpursahib'), ('nitnem_nangali', 'satluj'), ('gutka_nitnem', 'sony')]
 
 
 def _pairs(name, encoding):
@@ -95,9 +95,43 @@ class TestAnandpurSahib:
         assert [w.char for w in result.warnings] == ['T']
 
 
+class TestSatluj:
+    @pytest.mark.parametrize('legacy, expected', [
+        ('ý ÃÇå×¹ðêÌÃÅÇç¨', 'ੴ ਸਤਿਗੁਰਪ੍ਰਸਾਦਿ॥'),   # sihari typed first, subjoined ਰ
+        ('ÃÌÆ Üê¹ ÜÆ ÃÅÇÔì', 'ਸ੍ਰੀ ਜਪੁ ਜੀ ਸਾਹਿਬ'),
+        ('Ãî³¹Çç', 'ਸਮੁੰਦਿ'),                    # tippi typed before aunkar
+        ('Ç´êÅ', 'ਕ੍ਰਿਪਾ'),                      # a key carrying a conjunct
+        ('îÈó·', 'ਮੂੜ੍ਹ'),
+        ('ÃÝÅî', 'ਸ੍ਯਾਮ'),
+        ('ÇÂÃ|', 'ਇਸ਼'),                         # | is a nukta
+        ('ÇÃ¼Îè¶', 'ਸਿੱਧੇ'),                     # Î is a zero-width spacer
+        ('ÔËº', 'ਹੈਂ'),
+        ('¨1¨', '॥੧॥'),
+    ])
+    def test_words(self, legacy, expected):
+        assert convert(legacy, 'satluj') == expected
+
+
+class TestSony:
+    @pytest.mark.parametrize('legacy, expected', [
+        ('O ldaepi f+ljds mm', 'ੴ ਸਤਿਗੁਰ ਪ੍ਰਸਾਦਿ ॥'),   # d is sihari, typed first
+        ("Vq' liW wjv[ mm", 'ਨਮੋ ਸਰਬ ਕਾਲੇ ॥'),
+        ('H[w', 'ਏਕ'),                           # H is ੲ
+        ('ihjRp', 'ਰਹਾਉ'),                       # R is ੳ
+        ('l:I[', 'ਸ੍ਵਯੇ'),
+        ('d*fj', 'ਕ੍ਰਿਪਾ'),
+        ('duV%J', 'ਜਿਨ੍ਹਾਂ'),
+        ('y"fHg', 'ਚੌਪਈ'),
+        ('LWs h;ji[', 'ਸ਼ਬਦ ਹਜ਼ਾਰੇ'),
+        ('f+DFp', 'ਪ੍ਰਭੁ'),                      # D is a zero-width spacer
+    ])
+    def test_words(self, legacy, expected):
+        assert convert(legacy, 'sony') == expected
+
+
 class TestEncodingChoice:
     def test_encodings(self):
-        assert ENCODINGS == ('anmollipi', 'asees', 'joy', 'anandpursahib')
+        assert ENCODINGS == ('anmollipi', 'asees', 'joy', 'anandpursahib', 'satluj', 'sony')
 
     def test_unknown_encoding(self):
         with pytest.raises(ValueError, match='asees'):
@@ -113,7 +147,9 @@ class TestEncodingChoice:
 
     @pytest.mark.parametrize('font, encoding', [
         ('CKPHAK+Asees', 'asees'), ('Joy', 'joy'), ('GurbaniAkharThick', 'anmollipi'),
-        ('GLAJKC+AnandpurSahib', 'anandpursahib'),
+        ('GLAJKC+AnandpurSahib', 'anandpursahib'), ('Satluj,Bold', 'satluj'), ('SatlujBold', 'satluj'),
+        ('SONYBoldA', 'sony'), ('SONY-NormalItalicA', 'sony'), ('LORD-BoldA', 'anmollipi'),
+        ('GOD-BoldA', 'anmollipi'), ('GurbaniWebThick', 'anmollipi'),
         ('CKPPLH+GurbaniLipi', 'anmollipi'), ('AnmolLipi Bold', 'anmollipi'), ('Prabhki', 'anmollipi'),
         ('MSTT31c5cb', None), ('TimesNewRoman', None),
     ])
