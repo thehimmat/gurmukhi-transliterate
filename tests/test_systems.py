@@ -129,6 +129,11 @@ class TestSTTMLegacy:
         # iGurbani-verified: ਏਕ → eaek
         assert rom('sttm_legacy', 'ਏਕ') == 'eaeka'
 
+    @pytest.mark.parametrize('text, expected', [('ਵਞਾਈਐ', 'vanjaaeeai'), ('ਵੰਞਾ', 'vannjaa')])
+    def test_nya_is_nj(self, text, expected):
+        # iGurbani (#4): ਞ → nj
+        assert rom('sttm_legacy', text) == expected
+
 
 class TestBaniDBIPA:
     """BaniDB's IPA field, via the anvaad-js port."""
