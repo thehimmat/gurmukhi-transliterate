@@ -436,15 +436,50 @@ class TestHomorganicNasals:
         ('ਸੰਟ', 'saṇṭa'),
         ('ਸੰਪ', 'sampa'),
         ('ਕੰਮ', 'kamma'),
-        ('ਸੰਸਾਰ', 'saṁsāra'),   # not before a stop: plain nasalisation
+        ('ਸੰਸਾਰ', 'sansāra'),   # p. xxiii: n before s too
+        ('ਸੰਹ', 'saṁha'),       # p. xxiv: ṁ before h and v
+        ('ਸੰਵ', 'saṁva'),
     ])
     def test_shackle(self, text, expected):
         assert rom('shackle', text) == expected
 
     def test_shackle_reverse_round_trip(self):
         from gurmukhi_transliterate.reverse import shackle_to_gurmukhi
-        for w in ('ਸੰਤ', 'ਸੰਕ', 'ਸੰਚ', 'ਸੰਟ', 'ਸੰਪ'):
+        for w in ('ਸੰਤ', 'ਸੰਕ', 'ਸੰਚ', 'ਸੰਟ', 'ਸੰਪ', 'ਸੰਸਾਰ'):
             assert shackle_to_gurmukhi(rom('shackle', w)) == w
+
+
+@pytest.mark.story('US-007', 'US-008')
+class TestShackleVowelGroups:
+    """Shackle pp. xxi, xxiv: ü/ï mark a vowel of its own after a, ü also
+    marks double pointing (ੋ + ੁ), and ṁ goes after the whole vowel group."""
+
+    @pytest.mark.parametrize('text, expected', [
+        ('ਅਉ', 'aü'), ('ਅਇ', 'aï'), ('ਸਉ', 'saü'), ('ਸਇ', 'saï'),
+        ('ਭਉ', 'bhaü'), ('ਨਿਰਭਉ', 'nirabhaü'), ('ਦਇਆ', 'daïā'),
+        ('ਹੋਇ', 'hoi'), ('ਜੀਉ', 'jīu'), ('ਆਇ', 'āi'),   # only after a
+    ])
+    def test_hiatus_after_a(self, text, expected):
+        assert rom('shackle', text) == expected
+
+    @pytest.mark.parametrize('text, expected', [('ਸੋੁ', 'sü'), ('ਅਨਦਿਨੋੁ', 'anadinü')])
+    def test_double_pointing(self, text, expected):
+        assert rom('shackle', text) == expected
+
+    @pytest.mark.parametrize('text, expected', [
+        ('ਭਉਂ', 'bhaüṁ'), ('ਭੰਉ', 'bhaüṁ'), ('ਇਉਂ', 'iuṁ'),
+    ])
+    def test_nasal_after_vowel_group(self, text, expected):
+        assert rom('shackle', text) == expected
+
+    @pytest.mark.parametrize('word', ['ਨਿਰਭਉ', 'ਦਇਆ', 'ਸਉ', 'ਅਨਦਿਨੋੁ', 'ਭਉਂ', 'ਇਉਂ'])
+    def test_round_trip(self, word):
+        from gurmukhi_transliterate.reverse import shackle_to_gurmukhi
+        assert shackle_to_gurmukhi(rom('shackle', word)) == word
+
+    def test_other_systems_unchanged(self):
+        assert rom('iast', 'ਭਉ') == 'bhau'
+        assert rom('iast', 'ਸੰਸਾਰ') == 'saṃsāra'
 
 
 class TestLabialNasalsByEvidence:

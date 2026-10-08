@@ -17,16 +17,22 @@ choose among candidate spellings of a real word; this module deliberately does
 not guess — it surfaces the choice.
 
 Known ambiguities (kind → resolver is the corpus):
-  - ``nasalization``      §6  ṁ → ੰ (ṭippī, primary) or ਂ (bindī)
+  - ``nasalization``      §6  ṁ → ਂ (bindī) after ā ī e ai o au, ੰ (ṭippī)
+                              otherwise, as the corpus writes them; the other
+                              sign and no sign are the alternatives
   - ``aspirate_sonorant`` §3b nh/mh/lh/rh/ṇh/ṛh → subjoined ੍ਹ (primary),
                               which print often omits (ਨਹ / bare)
   - ``gemination``        §4  doubling not marked in old Gurmukhi → collapses
                               (primary); modern addak ੱ offered as alternative
   - ``persian_collision`` §8  a degraded (underline-dropped) kh could be ਖ or ਖ਼
 
-This is a first, rule-based cut. It does not yet handle the rarer bearer-vowel
-hiatus forms (ਸਉ saü, ਅਇ aï, §2) or the underlined Perso-Arabic source signs
-(s̲ s̲h̲ ż ẓ k͟h, §8) beyond the letters that already carry a distinct diacritic.
+ü and ï after a are vowels of their own (ਸਉ saü, ਅਇ aï); ü straight after a
+consonant is double pointing, ੋ + ੁ (ਸੋੁ sü). The Perso-Arabic signs of
+p. xxv (used in etymologies) map to the Gurmukhi letter written for each:
+s̲ ṡ → ਸ, s͟h → ਸ਼, h̲ → ਹ, k͟h → ਖ਼, g͟h → ਗ਼, z̲ ż ẓ → ਜ਼, t̲ → ਤ, and ʿ to the
+vowel letter after it with a nukta (ʿarab → ਅ਼ਰਬ, ʿilm → ਇ਼ਲਮ). Silent و (ẉ)
+and hamza (ʾ, or an apostrophe between letters) are dropped. Underlines may be
+written with U+0332, U+0331 or, across a digraph, U+035F.
 """
 
 from __future__ import annotations
@@ -43,6 +49,10 @@ _VIRAMA = '੍'
 _ADDAK = 'ੱ'
 _TIPPI = 'ੰ'
 _BINDI = 'ਂ'
+_NUKTA = '਼'
+# Vowels the corpus nasalizes with bindī (≥97% of the time); everything else
+# takes ṭippī.
+_TAKES_BINDI = frozenset('ਾੀੇੈੋੌਆਈਉਊਏਐਓਔ')
 _SUBJOINED_HA = '੍ਹ'
 
 # Aspirate → its unaspirated counterpart (§4: a geminated aspirate is written
@@ -66,6 +76,20 @@ class _Cons:
 # Consonant tokens, longest romanization first for greedy matching.
 # Order matters: 'ṇh' before 'ṇ', 'kh' before 'k', etc.
 _CONSONANTS: list[tuple[str, _Cons]] = [
+    # Perso-Arabic signs of p. xxv, underlines normalised to U+0332
+    ('k\u0332h\u0332', _Cons('ਖ਼')),
+    ('g\u0332h\u0332', _Cons('ਗ਼')),
+    ('s\u0332h\u0332', _Cons('ਸ਼')),
+    ('k\u0332h', _Cons('ਖ਼')),
+    ('g\u0332h', _Cons('ਗ਼')),
+    ('s\u0332h', _Cons('ਸ਼')),
+    ('s\u0332', _Cons('ਸ')),
+    ('h\u0332', _Cons('ਹ')),
+    ('z\u0332', _Cons('ਜ਼')),
+    ('t\u0332', _Cons('ਤ')),
+    ('ṡ', _Cons('ਸ')),
+    ('ż', _Cons('ਜ਼')),
+    ('ẓ', _Cons('ਜ਼')),
     # aspirate sonorants (§3b) — base + subjoined ੍ਹ
     ('ṇh', _Cons('ਣ', aspirate_sonorant=True)),
     ('nh', _Cons('ਨ', aspirate_sonorant=True)),
@@ -136,7 +160,7 @@ _VOWELS: list[tuple[str, _Vowel]] = [
     ('u', _Vowel('ੁ', 'ਉ')),
     ('e', _Vowel('ੇ', 'ਏ')),
     ('o', _Vowel('ੋ', 'ਓ')),
-    ('ü', _Vowel('ੁ', 'ਉ')),          # §2 metrical double-pointing, groups with -u
+    ('ü', _Vowel('ੋੁ', 'ਉ')),         # p. xxi: double pointing on a consonant, hiatus after a
     ('ï', _Vowel('ਿ', 'ਇ')),          # §2 hiatus i (daïā = ਦਇਆ), groups with -i
 ]
 
@@ -147,11 +171,17 @@ _NASAL_CLASS: dict[str, frozenset[str]] = {
     'ਙ': frozenset('ਕਖਗਘਙ'),
     'ਞ': frozenset('ਚਛਜਝਞ'),
     'ਣ': frozenset('ਟਠਡਢਣ'),
-    'ਨ': frozenset('ਤਥਦਧਨ'),
+    'ਨ': frozenset('ਤਥਦਧਨਸ'),         # p. xxiii: n before s too
     'ਮ': frozenset('ਪਫਬਭਮ'),
 }
 
 _NASALIZATION = 'ṁ'
+_AIN = 'ʿ'
+_SILENT = frozenset('ẉʾ')            # silent و and hamza (p. xxv)
+_UNDERLINES = str.maketrans({'\u0331': '\u0332', '\u035f': '\u0332'})
+_PRECOMPOSED_UNDERLINES = str.maketrans({
+    'ṯ': 't\u0332', 'ẖ': 'h\u0332', 'ḵ': 'k\u0332', 'ẕ': 'z\u0332',
+})
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +215,7 @@ class ReverseResult:
 
 @dataclass
 class _Tok:
-    kind: str          # 'C' | 'V' | 'N' | '?'
+    kind: str          # 'C' | 'V' | 'N' | 'A' (ʿ) | '?'
     roman: str
     cons: _Cons | None = None
     vowel: _Vowel | None = None
@@ -197,8 +227,20 @@ def _tokenize(text: str) -> list[_Tok]:
     i = 0
     n = len(text)
     while i < n:
-        # spaces and punctuation pass through as literal '?' tokens
         ch = text[i]
+        # silent signs; an apostrophe between letters is hamza (p. xxv)
+        if ch in _SILENT or (ch in "'’" and 0 < i < n - 1
+                             and text[i - 1].isalpha() and text[i + 1].isalpha()):
+            i += 1
+            continue
+        if text.startswith('w\u0324', i):
+            i += 2
+            continue
+        if ch == _AIN:
+            toks.append(_Tok('A', ch))
+            i += 1
+            continue
+        # spaces and punctuation pass through as literal '?' tokens
         if ch.isspace() or ch in ".,;:!?|'\"()[]-":
             toks.append(_Tok('?', ch))
             i += 1
@@ -207,7 +249,8 @@ def _tokenize(text: str) -> list[_Tok]:
         matched = False
         # consonants (longest first)
         for rom, cons in _CONSONANTS:
-            if text.startswith(rom, i):
+            # an underline belongs to the letter it follows (nh̲ is n + h̲)
+            if text.startswith(rom, i) and not text.startswith('\u0332', i + len(rom)):
                 toks.append(_Tok('C', rom, cons=cons))
                 i += len(rom)
                 matched = True
@@ -246,6 +289,7 @@ def reverse_transliterate(roman: str) -> ReverseResult:
     cases Shackle's rules leave genuinely underdetermined.
     """
     roman = unicodedata.normalize('NFC', roman)
+    roman = roman.translate(_PRECOMPOSED_UNDERLINES).translate(_UNDERLINES)
     toks = _tokenize(roman)
     out: list[str] = []
     ambiguities: list[Ambiguity] = []
@@ -278,18 +322,34 @@ def reverse_transliterate(roman: str) -> ReverseResult:
             i += 1
             continue
 
+        if tok.kind == 'A':
+            # ʿ: a nukta on the vowel letter that follows, else ਅ਼
+            nxt = toks[i + 1] if i + 1 < len(toks) else None
+            if nxt is not None and nxt.kind == 'V':
+                out.append(nxt.vowel.independent + _NUKTA)  # type: ignore[union-attr]
+                i += 1
+            else:
+                out.append('ਅ' + _NUKTA)
+            awaiting_cons = False
+            prev_cons_base = None
+            i += 1
+            continue
+
         if tok.kind == 'N':
-            # Nasalization: ṭippī (primary) or bindī (alternative)
+            # Nasalization: the sign the corpus uses after this vowel, with
+            # the other sign (and no sign) as alternatives
+            sign, other = ((_BINDI, _TIPPI) if out and out[-1][-1:] in _TAKES_BINDI
+                           else (_TIPPI, _BINDI))
             ambiguities.append(Ambiguity(
                 kind='nasalization',
                 source='ṁ',
-                chosen=_TIPPI,
-                alternatives=[_BINDI, ''],
+                chosen=sign,
+                alternatives=[other, ''],
                 start=pos(),
                 note='§6: ṁ may be written with ṭippī ੰ or bindī ਂ, and is '
                      'only sometimes marked in the script (often omitted)',
             ))
-            out.append(_TIPPI)
+            out.append(sign)
             awaiting_cons = False
             prev_cons_base = None
             i += 1

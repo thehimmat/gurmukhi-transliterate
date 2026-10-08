@@ -30,9 +30,19 @@ flagged alternatives, and an optional corpus matcher picks the attested one.
 from gurmukhi_transliterate import reverse_transliterate, shackle_to_gurmukhi
 
 shackle_to_gurmukhi('sravaṇu')        # → 'ਸ੍ਰਵਣੁ'
-res = reverse_transliterate('sāṁ')    # res.gurmukhi → 'ਸਾੰ'
+shackle_to_gurmukhi('nirabhaü')       # → 'ਨਿਰਭਉ'  (ü after a: a vowel of its own)
+res = reverse_transliterate('sāṁ')    # res.gurmukhi → 'ਸਾਂ'
 res.ambiguities                        # [Ambiguity(kind='nasalization', …)]
 ```
+
+The rules follow the book's Transcription pages (pp. xxi–xxv). Two of them
+can't be recovered from a Gurmukhi spelling, so going forward they're left out
+and going back they're flagged rather than guessed: doubling, which the script
+never marks (ਮਤਿ is both *mati* and *matti*), and an aspirate *h* whose ੍ਹ
+print omits (ਨਾਤਾ may be *nhātā*). The Perso-Arabic signs (s̲ ṡ s͟h h̲ k͟h g͟h z̲
+ż ẓ t̲ ʿ) belong to the book's etymologies, not its head-words; reverse maps
+each to the Gurmukhi letter written for it, and ʿ to a nukta on the vowel letter
+that follows (ʿarab → ਅ਼ਰਬ).
 
 Resolve ambiguities against a real word list (the library stays corpus-agnostic
 — you inject the lexicon; e.g. the glossary head-words ∪ the SGGS word index):
@@ -53,7 +63,7 @@ and isn't in the repo, so this figure can't be re-run from here.
 
 The reproducible check is a round trip: the 1,951 distinct words of the gold
 lines (tests/fixtures/gold/) are romanized with our Shackle map and reversed.
-It gives 96.1% exact and 97.3% including flagged candidates; run
+It gives 99.5% exact and 99.7% including flagged candidates; run
 `python tools/eval.py` and see `docs/eval/baseline.md`. A round trip only tests
 the engine against our own forward map, so expect real transcriptions to score
 lower. See `systems.py::SHACKLE` for the scheme and the `notes` field for the

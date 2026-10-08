@@ -20,8 +20,8 @@ class TestCandidateEnumeration:
     def test_primary_is_first(self):
         res = reverse_transliterate('sāṁ')
         cands = candidate_spellings(res)
-        assert cands[0] == 'ਸਾੰ'          # ṭippī primary
-        assert 'ਸਾਂ' in cands             # bindī alternative
+        assert cands[0] == 'ਸਾਂ'          # bindī after ā (primary)
+        assert 'ਸਾੰ' in cands             # ṭippī alternative
 
     def test_aspirate_alternatives(self):
         res = reverse_transliterate('nhātā')
@@ -43,12 +43,12 @@ class TestCandidateEnumeration:
 
 
 class TestMatching:
-    def test_bindi_form_wins_when_more_frequent(self):
-        # corpus has the bindī spelling far more often than the ṭippī one
-        matcher = CorpusMatcher({'ਸਾਂ': 40, 'ਸਾੰ': 2})
+    def test_more_frequent_form_wins(self):
+        # the alternative (ṭippī) beats the primary when the corpus prefers it
+        matcher = CorpusMatcher({'ਸਾਂ': 2, 'ਸਾੰ': 40})
         res = matcher.match('sāṁ')
         assert res.resolved
-        assert res.best == 'ਸਾਂ'
+        assert res.best == 'ਸਾੰ'
         assert res.matches[0].frequency == 40
 
     def test_primary_wins_when_only_attested(self):
@@ -60,7 +60,7 @@ class TestMatching:
         matcher = CorpusMatcher({'ਹੋਰ': 9})  # unrelated word
         res = matcher.match('sāṁ')
         assert not res.resolved
-        assert res.best == 'ਸਾੰ'  # primary reverse output
+        assert res.best == 'ਸਾਂ'  # primary reverse output
 
     def test_gemination_resolves_to_addak_form(self):
         # Shackle 'matti' → primary ਮਤਿ; corpus attests the addak form ਮੱਤਿ
@@ -93,5 +93,5 @@ class TestFileLoader:
         assert freq['ਸਾਂ'] == 40
         assert freq['ਨਾਮੁ'] == 1  # bare word → frequency 1
         matcher = CorpusMatcher.from_file(p)
-        # sāṁ primary is ṭippī ਸਾੰ (not in file); resolves to attested bindī ਸਾਂ
-        assert matcher.match('sāṁ').best == 'ਸਾਂ'
+        # saṁta primary is ਸੰਤ, attested in the file
+        assert matcher.match('santa').best == 'ਸੰਤ'
