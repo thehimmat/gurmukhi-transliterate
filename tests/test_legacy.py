@@ -2,6 +2,8 @@ import unicodedata
 import pytest
 from gurmukhi_transliterate import GurmukhiLegacy
 
+pytestmark = pytest.mark.story('US-003')
+
 
 def to_unicode(text):
     return GurmukhiLegacy.to_unicode(text)

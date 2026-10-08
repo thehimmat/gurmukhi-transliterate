@@ -9,6 +9,8 @@ import pathlib
 import pytest
 from gurmukhi_transliterate import GurmukhiLegacy
 
+pytestmark = pytest.mark.story('US-003')
+
 FIXTURES = pathlib.Path(__file__).parent / 'fixtures' / 'legacy'
 NAMES = sorted(p.name.split('.')[0] for p in FIXTURES.glob('*.gurbaniakhar.txt'))
 

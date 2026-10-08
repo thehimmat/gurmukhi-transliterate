@@ -3,9 +3,9 @@ id: US-006
 title: Browser demo backed by a deployable API
 status: delivered
 created: 2026-07-22
-updated: 2026-07-22
+updated: 2026-10-08
 linked_issues: [2, 3, 5]
-linked_tests: []
+linked_tests: [tests/test_api.py, tests/test_demo.py]
 supersedes: null
 superseded_by: null
 ---

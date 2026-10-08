@@ -10,6 +10,8 @@ from gurmukhi_transliterate.reverse import (
     reverse_transliterate,
 )
 
+pytestmark = pytest.mark.story('US-008')
+
 
 # ---------------------------------------------------------------------------
 # Deterministic core (single unambiguous answer)

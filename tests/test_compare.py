@@ -5,6 +5,7 @@ import pytest
 from gurmukhi_transliterate import comparison_table, identify_system, SYSTEMS, SYSTEM_ORDER
 
 
+@pytest.mark.story('US-004')
 class TestComparisonTable:
     def test_returns_all_systems(self):
         tbl = comparison_table('ਸਿੰਘ')
@@ -40,6 +41,7 @@ class TestComparisonTable:
         assert 'singh' == with_del['dr_sant_singh']
 
 
+@pytest.mark.story('US-005')
 class TestIdentifySystem:
     def test_returns_list_of_dicts(self):
         results = identify_system('waheguru')
@@ -94,6 +96,7 @@ def _gold():
         return list(csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, escapechar='\\'))
 
 
+@pytest.mark.story('US-005')
 class TestIdentifyLikelihood:
     @pytest.mark.parametrize('scheme, system, top1', [('banidb', 'sttm', 0.8), ('shabados', 'shabados', 0.85),
                                                       ('banidb_ipa', 'banidb_ipa', 0.95)])

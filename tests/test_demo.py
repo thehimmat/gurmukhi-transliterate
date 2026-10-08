@@ -18,6 +18,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.story('US-006')
+
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = (ROOT / 'index.html').read_text(encoding='utf-8')
 FETCHED = sorted(set(re.findall(r"fetch\(\s*[`'\"]/api/([a-z_]+)", PAGE)))

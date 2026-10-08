@@ -3,6 +3,8 @@ import pytest
 from gurmukhi_transliterate import lookup_informal, reverse_informal, reverse_words, to_gurmukhi
 from gurmukhi_transliterate.informal import TERMS
 
+pytestmark = pytest.mark.story('US-005')
+
 
 class TestTable:
     def test_small(self):
@@ -37,6 +39,7 @@ class TestPhrases:
         assert out is None and missing == ['pizza']
 
 
+@pytest.mark.story('US-010')
 class TestIntegration:
     def test_reverse_words_auto_picks_informal(self):
         r = reverse_words('Sat Sri Akal')

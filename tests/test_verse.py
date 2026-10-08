@@ -5,6 +5,8 @@ import pytest
 
 from gurmukhi_transliterate import UnableToReverse, VerseMatch, match_verse, to_gurmukhi
 
+pytestmark = pytest.mark.story('US-009')
+
 GOLD = pathlib.Path(__file__).parent / 'fixtures' / 'gold'
 
 

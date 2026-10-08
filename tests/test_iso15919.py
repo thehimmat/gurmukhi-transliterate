@@ -1,6 +1,8 @@
 import pytest
 from gurmukhi_transliterate import GurmukhiISO15919
 
+pytestmark = pytest.mark.story('US-001')
+
 t = GurmukhiISO15919.to_phonetic
 
 

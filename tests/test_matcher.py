@@ -1,11 +1,15 @@
 """Tests for the corpus matcher (Shackle reverse → attested Gurmukhi word)."""
 
+import pytest
+
 from gurmukhi_transliterate.matcher import (
     CorpusMatcher,
     candidate_spellings,
     load_lexicon,
 )
 from gurmukhi_transliterate.reverse import reverse_transliterate
+
+pytestmark = pytest.mark.story('US-008')
 
 
 class TestCandidateEnumeration:

@@ -3,9 +3,9 @@ id: US-005
 title: Identify the transliteration/encoding of unknown input
 status: delivered
 created: 2026-07-22
-updated: 2026-10-07
+updated: 2026-10-08
 linked_issues: [16, 27]
-linked_tests: [tests/test_compare.py, tests/test_language.py]
+linked_tests: [tests/test_compare.py, tests/test_detect_encoding.py, tests/test_informal.py, tests/test_language.py]
 supersedes: null
 superseded_by: null
 ---

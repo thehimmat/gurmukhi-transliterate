@@ -1,6 +1,8 @@
 import pytest
 from gurmukhi_transliterate import GurmukhiPractical
 
+pytestmark = pytest.mark.story('US-002')
+
 t = GurmukhiPractical.to_practical
 
 

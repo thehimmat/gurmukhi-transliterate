@@ -7,6 +7,8 @@ import pytest
 from gurmukhi_transliterate import GurmukhiLegacy, conversion_report
 from gurmukhi_transliterate.legacy import ENCODINGS
 
+pytestmark = pytest.mark.story('US-003')
+
 FIXTURES = pathlib.Path(__file__).parent / 'fixtures' / 'legacy'
 CASES = [('chandi_charitar', 'joy'), ('gur_sobha', 'asees'), ('gur_sobha_joy', 'joy'),
          ('zafarnama', 'anandpursahib'), ('nitnem_nangali', 'satluj'), ('gutka_nitnem', 'sony')]
