@@ -110,6 +110,15 @@ class TestIdentifyLikelihood:
         assert first / len(rows) >= top1, f'{scheme}: top-1 {first}/{len(rows)}'
         assert in_class / len(rows) >= 0.95, f'{scheme}: equivalence class {in_class}/{len(rows)}'
 
+    def test_shackle_umlauts(self):
+        # ü/ï (vowel after a vowel, pp. xxi–xxv) are Shackle's alone; the model must know them
+        from gurmukhi_transliterate import GurmukhiRomanizer
+        r = GurmukhiRomanizer('shackle')
+        lines = [t for t in (r.romanize(row['gurmukhi']) for row in _gold()) if any(c in t for c in 'üï')]
+        assert len(lines) >= 50
+        first = sum(identify_system(t)[0]['system'] == 'shackle' for t in lines)
+        assert first / len(lines) >= 0.95, f'top-1 {first}/{len(lines)}'
+
     def test_identical_outputs_are_equivalent(self):
         from gurmukhi_transliterate import GurmukhiRomanizer, GurmukhiISO15919
         text = 'ਸਤਿਗੁਰ ਪ੍ਰਸਾਦਿ ਨਾਮੁ'
