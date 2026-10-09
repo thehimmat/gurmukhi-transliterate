@@ -79,7 +79,12 @@ keys), `'sony'` (the SONY gutka fonts) and `'anandpursahib'` (a phonetic layout;
 keys seen in real text are mapped so far, so the retroflexes and a few other letters are
 reported as unmapped rather than guessed). It keeps line structure exactly (same newlines in and out) and
 never drops input: ASCII punctuation passes through, and anything unmapped is kept and
-logged. Use `convert` to get those warnings as data:
+logged. A few conventions come from checking real PDFs against their rendered pages:
+AnmolLipi's `@` (pairin haha drawn under the letter) becomes `ੑ`, as in Shabad OS and
+BaniDB (`ਤੁਮੑਾਰੀ`); two keys typists overlay to draw one sign (`ੁ`+`ੂ`, a doubled bindi)
+become that one sign; and Satluj text from a PDF made on a Mac, whose text layer reads the
+font's bytes as Mac Roman (`√` for `Ã`), is read back as Windows-1252 first. Use `convert`
+to get the warnings as data:
 
 ```python
 GurmukhiLegacy.to_unicode('ikæsmq')                  # 'ਕ਼ਿਸਮਤ' (consonant, nukta, sihari)
@@ -98,7 +103,10 @@ maps its name to an encoding; that is more reliable than detection.
 AnmolLipi is recognised by its spelling structure; the other layouts by
 converting and looking the words up in the bundled Gurbani lexicon (lines of four or more
 words). They share their letter keys, so
-text without Joy's few distinct keys reads as `'asees'` (the output is the same).
+text without Joy's few distinct keys reads as `'asees'` (the output is the same); when
+both read as words, the one that leaves less of the text as punctuation wins. A line
+mostly of all-capital words (`KE CHALAAK DAST`) reads as `'latin'` unless it converts to
+lexicon words.
 `detect_lines` returns one `EncodingGuess(label, score)` per line, for pages that mix
 legacy-font verses with romanised headings.
 
