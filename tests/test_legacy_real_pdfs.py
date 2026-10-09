@@ -89,3 +89,13 @@ class TestDetection:
     ])
     def test_all_caps_romanisation_is_latin(self, text):
         assert GurmukhiLegacy.detect_encoding(text) == 'latin'
+
+
+class TestIkOnkar:
+    def test_lone_less_than_is_whole_ik_onkar_in_gurbanilipi(self):
+        # GurbaniLipi draws the whole ੴ on '<' (Vaar Bhagauti PDF, p. 1)
+        r = convert('< siqgurpRswid ]', 'anmollipi')
+        assert r.text == 'ੴ ਸਤਿਗੁਰਪ੍ਰਸਾਦਿ ॥'
+
+    def test_two_part_ik_onkar_still_one_sign(self):
+        assert convert('<> siqgur pRswid', 'anmollipi').text == 'ੴ ਸਤਿਗੁਰ ਪ੍ਰਸਾਦਿ'

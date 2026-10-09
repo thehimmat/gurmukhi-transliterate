@@ -175,7 +175,7 @@ class GurmukhiLegacy:
         '¡': 'ੴ',     # Ik Onkar
         
         # Alternative characters that map to same output
-        '<': 'Å',     # Maps to Å
+        '<': 'ੴ',     # GurbaniLipi draws the whole ੴ on '<' ('<>' is matched first)
         'Å': 'Å',     # Ura
         '>': 'Æ',     # Maps to Æ
         'Æ': 'Æ',     # Ura
