@@ -44,8 +44,16 @@ class SystemMap:
     notes: str = ''
     # Homorganic nasals: tippi before a consonant of one of these classes is
     # written with the class's value instead of nasal_tippi. Keys: 'velar',
-    # 'palatal', 'retroflex', 'dental', 'labial'. Empty = always nasal_tippi.
+    # 'palatal', 'retroflex', 'dental', 'labial', 'sibilant'. Empty = always
+    # nasal_tippi.
     nasal_by_class: dict[str, str] = field(default_factory=dict)
+    # Vowel groups (Shackle pp. xxi, xxiv). hiatus: the value of an independent
+    # vowel straight after a short a (ਸਉ saü). double_pointing: the value of
+    # ੋ + ੁ on one consonant (ਸੋੁ sü). nasal_after_vowels: a nasal sign
+    # followed by an independent vowel is written after that vowel (ਭੰਉ bhaüṁ).
+    hiatus: dict[str, str] = field(default_factory=dict)
+    double_pointing: str | None = None
+    nasal_after_vowels: bool = False
 
 
 # Articulation class of each consonant (the class nasal included: ਕੰਮ, ਬੰਨਾ).
@@ -55,6 +63,7 @@ NASAL_CLASSES: dict[str, frozenset[str]] = {
     'retroflex': frozenset('ਟਠਡਢਣ'),
     'dental': frozenset('ਤਥਦਧਨ'),
     'labial': frozenset('ਪਫਬਭਮ'),
+    'sibilant': frozenset('ਸ'),
 }
 
 
@@ -476,22 +485,27 @@ SHACKLE = SystemMap(
     nasal_bindi='ṁ',
     subjoined={'੍ਰ': 'r', '੍ਵ': 'v', '੍ਹ': 'h', '੍ਤ': 't', '੍ਯ': 'y'},
     nasal_by_class={'velar': 'ṅ', 'palatal': 'ñ', 'retroflex': 'ṇ',
-                    'dental': 'n', 'labial': 'm'},
+                    'dental': 'n', 'labial': 'm', 'sibilant': 'n'},
+    hiatus={'ਉ': 'ü', 'ਇ': 'ï'},
+    double_pointing='ü',
+    nasal_after_vowels=True,
     notes=(
         'Scholarly phonemic transcription from Christopher Shackle, '
         '"A Guru Nanak Glossary" (2nd ed. 2011), Transcription pp. xxi-xxv. '
         'Indic core is IAST-like but adds ੜ → ṛ and writes the inherent -a '
-        'after every unmarked consonant. Distinctive Shackle rules the '
-        'generic engine applies or approximates: (§5) nasal groups assimilate '
-        'homorganically to the following consonant (ੰ → ṅ/ñ/ṇ/n/m: ਸੰਕ '
-        'saṅka, ਸੰਚ sañca, ਸੰਟ saṇṭa, ਸੰਤ santa, ਸੰਪ sampa) — applied via '
-        'nasal_by_class; (§4) etymological doubling (ਮਤਿ matti) which Gurmukhi '
-        'never marks; (§3b) aspirate sonorants ṇh nh mh rh lh ṛh written with '
-        'subjoined ੍ਹ that print often omits. Because the transcription '
-        'preserves retroflex/dental, aspiration, gemination, final short '
-        'vowels and nasalization, it is unusually reversible — the basis for '
-        'the reverse_transliterate (Shackle → Gurmukhi) module. Persian '
-        'underlines: ਖ਼ k͟h, ਗ਼ ġ, plus s̲ ṣ z̲ s̲h̲ ż ẓ for Perso-Arabic etyma.'
+        'after every unmarked consonant. Applied here: nasal groups take the '
+        'class nasal of the next consonant (p. xxiii: ਸੰਕ saṅka, ਸੰਚ sañca, '
+        'ਸੰਟ saṇṭa, ਸੰਤ santa, ਸੰਸਾਰ sansāra, ਸੰਪ sampa); ü/ï for ਉ/ਇ after a '
+        '(p. xxi: ਸਉ saü, ਅਇ aï) and ü for double pointing ੋ + ੁ (ਸੋੁ sü); '
+        'ṁ after the whole vowel group (p. xxiv: ਭਉਂ bhaüṁ). Not recoverable '
+        'from the spelling, so left out: doubling, which the script never '
+        'marks (p. xxiii: ਮਤਿ mati or matti), and an aspirate h whose subjoined '
+        '੍ਹ print omits (p. xxii). Because the transcription keeps '
+        'retroflex/dental, aspiration, nasal class, nasalization and final '
+        'short vowels, it is unusually reversible: see reverse_transliterate. '
+        'The Perso-Arabic signs (s̲ ṡ s͟h h̲ k͟h g͟h z̲ ż ẓ t̲ ʿ, p. xxv) are for '
+        'etymologies; ਖ਼ is written kh here because the underline renders as '
+        'boxes in Noto Serif.'
     ),
 )
 

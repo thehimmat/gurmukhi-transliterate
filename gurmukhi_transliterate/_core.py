@@ -15,7 +15,12 @@ Text is split into syllable parts by :mod:`._tokens`, then rendered:
                 occurs (after a consonant, vowel sign or independent vowel)
   - tippi/bindi → the system's nasal value, after whatever vowel precedes it;
                   a tippi before a consonant takes that consonant's class
-                  nasal when the system defines ``nasal_by_class``
+                  nasal when the system defines ``nasal_by_class``; with
+                  ``nasal_after_vowels`` a nasal before an independent vowel
+                  is written after that vowel
+  - ``hiatus``  → an independent vowel straight after a short a takes the
+                  system's hiatus value (ਸਉ saü); ``double_pointing`` covers
+                  ੋ + ੁ on one consonant (ਸੋੁ sü)
   - independent vowels, standalone signs, ੴ, punctuation and numbers map
     directly; other unmapped characters are skipped
 
@@ -100,12 +105,15 @@ def transliterate(
     tokens = tokenize(text)
     result: list[str] = []
     geminate = False
+    after_a = False          # the last vowel written was a short a
+    pending_nasal = ''       # a nasal held back until after the next vowel
     j = 0
     while j < len(tokens):
         tok = tokens[j]
         nxt = tokens[j + 1] if j + 1 < len(tokens) else None
 
         if tok.kind == 'cons':
+            after_a = False
             rom = subjoined(tok, tokens[j - 1] if j else None) or consonant(tok)
             if rom is None:
                 geminate = False
@@ -115,6 +123,11 @@ def transliterate(
                 result.append(rom)
                 geminate = False
             result.append(rom)
+            if (system.double_pointing and nxt is not None and nxt.text == 'ੋ'
+                    and j + 2 < len(tokens) and tokens[j + 2].text == 'ੁ'):
+                result.append(system.double_pointing)
+                j += 3
+                continue
             if nxt is not None and nxt.kind == 'sign':
                 sign = vd.get(nxt.text)
                 result.append(sign if sign is not None else inherent)
@@ -125,12 +138,15 @@ def transliterate(
                 continue
             if nxt is not None and nxt.kind in ('nasal', 'addak'):
                 result.append(inherent)
+                after_a = True
             elif tok.pos not in deletions:
                 result.append(inherent)
+                after_a = True
             j += 1
             continue
 
         geminate = False
+        was_after_a, after_a = after_a, False
         if tok.kind == 'addak':
             geminate = nxt is not None and nxt.kind == 'cons'
         elif tok.kind == 'nasal':
@@ -144,19 +160,27 @@ def transliterate(
                 nasal = system.nasal_tippi
                 warn(tok.pos, tok.text, 'fallback_nasal',
                      f'{system.id} has no bindi; used its tippi value')
-            if nasal:
+            if nasal and system.nasal_after_vowels and nxt is not None and nxt.kind == 'vowel':
+                pending_nasal = nasal
+                after_a = was_after_a
+            elif nasal:
                 result.append(nasal)
         elif tok.kind == 'sign':
             if vd.get(tok.text) is not None:
                 result.append(vd[tok.text])  # type: ignore[arg-type]
         elif tok.kind == 'vowel':
-            if vw.get(tok.text) is not None:
+            if was_after_a and tok.text in system.hiatus:
+                result.append(system.hiatus[tok.text])
+            elif vw.get(tok.text) is not None:
                 result.append(vw[tok.text])  # type: ignore[arg-type]
             elif tok.text in GurmukhiISO15919.VOWELS:
                 iso = GurmukhiISO15919.VOWELS[tok.text]
                 warn(tok.pos, tok.text, 'fallback_iso',
                      f'{system.id} has no {tok.text}; used ISO 15919 {iso!r}')
                 result.append(iso)
+            after_a = tok.text == 'ਅ'
+            result.append(pending_nasal)
+            pending_nasal = ''
         elif tok.kind == 'other':
             ch = tok.text
             if ch in _SPECIAL:

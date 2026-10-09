@@ -152,15 +152,27 @@ class TestAspirateSonorants:
 
 
 class TestNasalization:
-    """§6: ṁ may be written with ṭippī ੰ or bindī ਂ."""
+    """§6: ṁ may be written with ṭippī ੰ or bindī ਂ (p. xxiv: ਸੰ saṁ, ਸਾਂ sāṁ).
 
-    def test_primary_is_tippi(self):
-        assert shackle_to_gurmukhi('sāṁ') == 'ਸਾੰ'
+    Which one follows each vowel is near-categorical in the bundled corpus:
+    ṭippī after a, i, u, ū and ਅ ਇ; bindī after the other vowels.
+    """
 
-    def test_bindi_flagged(self):
+    @pytest.mark.parametrize('roman, gurmukhi', [
+        ('saṁ', 'ਸੰ'), ('siṁ', 'ਸਿੰ'), ('suṁ', 'ਸੁੰ'), ('sūṁ', 'ਸੂੰ'),
+        ('sāṁ', 'ਸਾਂ'), ('sīṁ', 'ਸੀਂ'), ('seṁ', 'ਸੇਂ'), ('saiṁ', 'ਸੈਂ'),
+        ('soṁ', 'ਸੋਂ'), ('sauṁ', 'ਸੌਂ'),
+        ('bhāṁḍā', 'ਭਾਂਡਾ'), ('bhāṁti', 'ਭਾਂਤਿ'),
+        ('bhaüṁ', 'ਭਉਂ'), ('iuṁ', 'ਇਉਂ'), ('aṁdaru', 'ਅੰਦਰੁ'),
+    ])
+    def test_sign_follows_the_vowel(self, roman, gurmukhi):
+        assert shackle_to_gurmukhi(roman) == gurmukhi
+
+    def test_other_sign_flagged(self):
         res = reverse_transliterate('sāṁ')
-        assert any(a.kind == 'nasalization' for a in res.ambiguities)
-        assert any('ਂ' in alt for a in res.ambiguities for alt in a.alternatives)
+        flag = next(a for a in res.ambiguities if a.kind == 'nasalization')
+        assert flag.chosen == 'ਂ'
+        assert flag.alternatives == ['ੰ', '']
 
 
 class TestPersian:
@@ -204,6 +216,17 @@ class TestDiaeresisHiatus:
     def test_i_diaeresis(self):
         assert shackle_to_gurmukhi('daïā') == 'ਦਇਆ'
 
+    @pytest.mark.parametrize('roman, gurmukhi', [
+        ('aü', 'ਅਉ'), ('aï', 'ਅਇ'), ('saü', 'ਸਉ'), ('nirabhaü', 'ਨਿਰਭਉ'),
+    ])
+    def test_hiatus_after_a(self, roman, gurmukhi):
+        assert shackle_to_gurmukhi(roman) == gurmukhi
+
+    @pytest.mark.parametrize('roman, gurmukhi', [('sü', 'ਸੋੁ'), ('anadinü', 'ਅਨਦਿਨੋੁ')])
+    def test_double_pointing(self, roman, gurmukhi):
+        # p. xxi: ü straight after a consonant is ੋ + ੁ (metrical -o → -u)
+        assert shackle_to_gurmukhi(roman) == gurmukhi
+
     def test_no_latin_leaks(self):
         out = shackle_to_gurmukhi('daïā saü')
         assert not any('a' <= ch.lower() <= 'z' or ch in 'ïü' for ch in out)
@@ -225,3 +248,55 @@ class TestKoshCrossCheck:
     ])
     def test_reverses_to_printed_spelling(self, roman, gurmukhi):
         assert shackle_to_gurmukhi(roman) == gurmukhi
+
+
+class TestNasalBeforeS:
+    def test_n_before_s_is_tippi(self):
+        # p. xxiii lists s with t th d dh n as taking n
+        assert shackle_to_gurmukhi('sansāra') == 'ਸੰਸਾਰ'
+
+
+class TestPersoArabicSigns:
+    """p. xxv: the signs for Perso-Arabic letters in etymologies. Each maps to
+    the Gurmukhi letter used for it; no Latin or combining mark survives."""
+
+    @pytest.mark.parametrize('roman, gurmukhi', [
+        ('s\u0332ābita', 'ਸਾਬਿਤ'),        # ث s̲
+        ('h\u0332ukama', 'ਹੁਕਮ'),         # ح h̲
+        ('k\u035fhālika', 'ਖ਼ਾਲਿਕ'),       # خ k͟h
+        ('k\u0332h\u0332ālika', 'ਖ਼ਾਲਿਕ'),  # same, each letter underlined
+        ('z\u0332ālima', 'ਜ਼ਾਲਿਮ'),        # ذ z̲
+        ('s\u035fhāha', 'ਸ਼ਾਹ'),          # ش s͟h
+        ('ṡāhibu', 'ਸਾਹਿਬੁ'),             # ص ṡ
+        ('żāmina', 'ਜ਼ਾਮਿਨ'),             # ض ż
+        ('t\u0332ālibu', 'ਤਾਲਿਬੁ'),       # ط t̲
+        ('ẓālima', 'ਜ਼ਾਲਿਮ'),             # ظ ẓ
+        ('g\u035fharība', 'ਗ਼ਰੀਬ'),       # غ g͟h
+        ('ṯālibu', 'ਤਾਲਿਬੁ'),             # macron-below spelling of t̲
+        ('manh\u0332ūsu', 'ਮਨ੍ਹੂਸੁ'),       # n + h̲, not the aspirate nh
+    ])
+    def test_signs(self, roman, gurmukhi):
+        assert shackle_to_gurmukhi(roman) == gurmukhi
+
+    @pytest.mark.parametrize('roman, gurmukhi', [
+        ('ʿaraba', 'ਅ਼ਰਬ'),        # ع on the vowel letter that follows
+        ('ʿālamu', 'ਆ਼ਲਮੁ'),
+        ('ʿilama', 'ਇ਼ਲਮ'),
+        ('ʿumara', 'ਉ਼ਮਰ'),
+        ('maʿlūmu', 'ਮਅ਼ਲੂਮੁ'),    # no vowel follows → ਅ਼
+    ])
+    def test_ain(self, roman, gurmukhi):
+        assert shackle_to_gurmukhi(roman) == gurmukhi
+
+    @pytest.mark.parametrize('roman, gurmukhi', [
+        ('k\u035fhẉāba', 'ਖ਼ਾਬ'),     # silent و ẉ
+        ("jur'ata", 'ਜੁਰਤ'),         # post-consonantal hamza
+        ('jurʾata', 'ਜੁਰਤ'),
+    ])
+    def test_silent_signs_dropped(self, roman, gurmukhi):
+        assert shackle_to_gurmukhi(roman) == gurmukhi
+
+    def test_only_gurmukhi_comes_out(self):
+        out = shackle_to_gurmukhi(
+            's\u0332a h\u0332a k\u035fha z\u0332a s\u035fha ṡa ża t\u0332a ẓa ʿa g\u035fha ẉa ʾa')
+        assert all(ch == ' ' or '\u0a00' <= ch <= '\u0a7f' for ch in out), out
