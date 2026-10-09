@@ -59,6 +59,7 @@ class Layout:
     fonts: tuple = ()   # font names (lowercase prefixes) that use this layout
     one_nasal_key: bool = False  # tippi and bindi share a key: pick by vowel
     join_dandas: bool = False    # '।।' typed as two single dandas → '॥'
+    mac_roman_repair: bool = False  # undo a Mac Roman reading of the font's bytes
 
 
 # Independent vowels some layouts build from a carrier plus a sign
@@ -69,8 +70,32 @@ _COMPOSE = (('ਅਾ', 'ਆ'), ('ਅੈ', 'ਐ'), ('ਅੌ', 'ਔ'), ('ੲਿ', 
 _SIGN_FIRST = re.compile('([ੰਂੱ])([ੁੂ])')
 # Bindi, not tippi, goes with these vowels
 _BINDI_AFTER = re.compile('(?<=[ਾੀੇੈੋੌਆਈਏਐਓਔ])ੰ')
-# Keys whose output joins the preceding consonant: nukta, virama, yakash
-_JOINS = ('\u0a3c', '\u0a4d', '\u0a75')
+# Keys whose output joins the preceding consonant: nukta, virama, yakash and
+# the udaat sign Shabad OS uses for pairin haha (ਤੁਮੑਾਰੀ)
+_JOINS = ('\u0a3c', '\u0a4d', '\u0a75', '\u0a51')
+# Two keys typists overlay to draw one sign; Unicode has one code point for it
+_OVERLAID = (('ੁੂ', 'ੂ'), ('ੂੁ', 'ੂ'), ('ਂਂ', 'ਂ'), ('ੰੰ', 'ੰ'))
+# Characters a Mac Roman reading of a byte gives that Windows-1252 has no
+# character for: a PDF made on a Mac shows Satluj's 0xC3 as '√', not 'Ã'
+_MAC_ONLY = frozenset(
+    c for c in bytes(range(0x80, 0x100)).decode('mac_roman')
+    if c not in bytes(range(0x80, 0x100)).decode('cp1252', errors='ignore'))
+
+
+def _mac_roman_to_windows(line: str) -> str:
+    """Re-read a line decoded as Mac Roman as the Windows-1252 text the font expects."""
+    out = []
+    for c in line:
+        try:
+            b = c.encode('mac_roman')
+        except UnicodeEncodeError:
+            out.append(c)
+            continue
+        try:
+            out.append(b.decode('cp1252'))
+        except UnicodeDecodeError:   # bytes cp1252 leaves undefined
+            out.append(b.decode('latin-1'))
+    return ''.join(out)
 
 
 class GurmukhiLegacy:
@@ -140,6 +165,7 @@ class GurmukhiLegacy:
         # Special marks with alternatives
         'M': 'ੰ',     # tippi
         'µ': 'ੰ',     # tippi (alternative)
+        'μ': 'ੰ',     # tippi: PDFs give Greek mu for the µ key
         'N': 'ਂ',     # bindi
         'ˆ': 'ਂ',     # bindi (alternative)
         'æ': '਼',     # nukta
@@ -193,7 +219,8 @@ class GurmukhiLegacy:
         'N': 'ਂ',   # bindi
         '`': 'ੱ',   # addak
         '~': 'ੱ',   # addak (alternative)
-        '@': '੍',   # halant/virama
+        '@': 'ੑ',   # pairin haha, drawn under the letter; Shabad OS encodes it as ੑ
+        'Ø': '',    # invisible spacing glyph
         '¤': 'ੴ',   # Ek Onkar
         
         # Numbers
@@ -292,6 +319,9 @@ class GurmukhiLegacy:
             guess = cls._guess(text).label
             encoding = guess if guess in LAYOUTS else 'anmollipi'
         layout = cls.layout(encoding)
+        if layout.mac_roman_repair and any(c in _MAC_ONLY for c in text):
+            text = '\n'.join(_mac_roman_to_windows(line) if any(c in _MAC_ONLY for c in line) else line
+                              for line in text.split('\n'))
         sihari = 'ਿ'
         chars = []
         warnings = []
@@ -384,6 +414,8 @@ class GurmukhiLegacy:
 
         flush_orphan()
         out = ''.join(chars)
+        for parts, sign in _OVERLAID:
+            out = out.replace(parts, sign)
         out = _SIGN_FIRST.sub(r'\2\1', out)
         for parts, vowel in _COMPOSE:
             out = out.replace(parts, vowel)
@@ -461,11 +493,15 @@ class GurmukhiLegacy:
             return EncodingGuess('unknown', 0.0)
         # Asees/Joy/AnandpurSahib put letters on punctuation keys, so AnmolLipi's
         # spelling rules can't judge them: convert and look the words up instead.
-        lexical, found = max(((e, cls._lexicon_share(text, e)) for e in LEXICON_DETECTED),
-                                key=lambda x: x[1])
+        # Ties (Asees and Joy share their letters) go to the layout that turns
+        # more of the text into Gurmukhi: Joy's tippi key is '!' in Asees.
+        lexical, found, _ = max(((e, cls._lexicon_share(text, e), cls._gurmukhi_share(text, e))
+                                 for e in LEXICON_DETECTED), key=lambda x: (x[1], x[2]))
         if found >= cls.LEXICON_THRESHOLD and found > cls._lexicon_share(text, 'anmollipi'):
             return EncodingGuess(lexical, found)
         share = plausible / total
+        if share >= cls.LEGACY_THRESHOLD and cls._caps_romanised(text):
+            return EncodingGuess('latin', share)
         if share >= cls.LEGACY_THRESHOLD:
             return EncodingGuess('anmollipi', share)
         return EncodingGuess('latin', 1 - share)
@@ -488,6 +524,25 @@ class GurmukhiLegacy:
             return 0.0
         lexicon = _lexicon_words()
         return sum(w in lexicon for w in words) / len(words)
+
+    @staticmethod
+    def _gurmukhi_share(text: str, encoding: str) -> float:
+        out = [c for c in GurmukhiLegacy.convert(text, encoding).text if not c.isspace()]
+        return sum('\u0A00' <= c <= '\u0A7F' for c in out) / len(out) if out else 0.0
+
+    # Share of letters in all-capital words above which a line reads as
+    # capitalised romanisation ('KE CHALAAK DAST') unless the lexicon says otherwise
+    CAPS_THRESHOLD = 0.6
+
+    @classmethod
+    def _caps_romanised(cls, text: str) -> bool:
+        words = [re.sub('[^A-Za-z]', '', w) for w in text.split()]
+        words = [w for w in words if w]
+        caps = [w for w in words if len(w) > 1 and w.isupper()]
+        letters = sum(map(len, words))
+        if len(caps) < 3 or sum(map(len, caps)) < cls.CAPS_THRESHOLD * letters:
+            return False
+        return cls._lexicon_share(text, 'anmollipi') < cls.LEXICON_THRESHOLD
 
     @staticmethod
     def encoding_for_font(font_name: str) -> str | None:
@@ -555,7 +610,7 @@ LAYOUTS = {
         passthrough=frozenset(' \t\r\n0123456789,.()-'), fonts=('anandpursahib',)),
     'satluj': Layout(
         'satluj', 'Satluj', keys=SATLUJ_KEYS, combos={}, sihari=frozenset('Ç'),
-        passthrough=frozenset(' \t\r\n,.()-/:'), fonts=('satluj',)),
+        passthrough=frozenset(' \t\r\n,.()-/:'), fonts=('satluj',), mac_roman_repair=True),
     'sony': Layout(
         'sony', 'SONY', keys=SONY_KEYS, combos={}, sihari=frozenset('d'),
         passthrough=frozenset(' \t\r\n()-!'), fonts=('sony',), join_dandas=True),

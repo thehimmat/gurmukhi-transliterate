@@ -114,5 +114,6 @@ SONY_KEYS = {
     '*': 'ਕ੍ਰ',
     'O': 'ੴ', 'm': '।',
     'D': '',   # zero-width spacing glyph
+    '\\': '(', '|': ')',   # brackets round verse numbers: '\\3|' draws (੩)
     **_GURMUKHI_DIGITS,
 }
