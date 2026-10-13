@@ -117,17 +117,17 @@ class TestSTTMLegacy:
         assert rom('sttm_legacy', 'ਵਾਹਿਗੁਰੂ') == 'vaahiguroo'
 
     def test_dental_t_is_th(self):
-        assert rom('sttm_legacy', 'ਤ') == 'tha'
+        assert rom('sttm_legacy', 'ਤ') == 'th'
 
     def test_retroflex_tt(self):
-        assert rom('sttm_legacy', 'ਟ') == 'tta'
+        assert rom('sttm_legacy', 'ਟ') == 'tt'
 
     def test_satnam(self):
-        assert rom('sttm_legacy', 'ਸਤਿ') == 'sathi'
+        assert rom('sttm_legacy', 'ਸਤਿ') == 'sath'
 
     def test_ek_is_eaek(self):
         # iGurbani-verified: ਏਕ → eaek
-        assert rom('sttm_legacy', 'ਏਕ') == 'eaeka'
+        assert rom('sttm_legacy', 'ਏਕ') == 'eaek'
 
     @pytest.mark.parametrize('text, expected', [('ਵਞਾਈਐ', 'vanjaaeeai'), ('ਵੰਞਾ', 'vannjaa')])
     def test_nya_is_nj(self, text, expected):
@@ -322,7 +322,7 @@ class TestAddak:
 # --- #21: addak / nasals in any position ------------------------------------
 
 MAP_DRIVEN = [s for s in __import__('gurmukhi_transliterate').SYSTEM_ORDER
-              if s not in ('sttm', 'banidb_ipa', 'shabados')]   # dedicated engines
+              if s not in ('sttm', 'banidb_ipa', 'shabados', 'sttm_legacy')]   # dedicated engines
 
 
 def _shape_cases():
@@ -385,7 +385,7 @@ class TestFallbacks:
         assert [(w.kind, w.char, w.position) for w in r.warnings] == [('fallback_iso', 'ੜ', 1)]
 
     def test_missing_nukta_letter_uses_base(self):
-        r = self.report('sttm_legacy', 'ਲ਼')      # sttm_legacy has no ਲ਼
+        r = self.report('gfs', 'ਲ਼')              # gfs has no ਲ਼
         assert r.text == 'la'
         assert [w.kind for w in r.warnings] == ['fallback_base']
 
@@ -495,7 +495,7 @@ class TestLabialNasalsByEvidence:
             ['əŋ', 'əɲ', 'əɳ', 'ən', 'əm']
 
     @pytest.mark.parametrize('sid, expected', [
-        ('sttm_legacy', 'kanma'),       # iGurbani: kanm
+        ('sttm_legacy', 'kanm'),        # iGurbani: kanm
         ('sacred_nitnem', 'kaṅma'),
     ])
     def test_fixed_nasal_systems_unchanged(self, sid, expected):
