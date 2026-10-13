@@ -212,16 +212,17 @@ STTM_LEGACY = SystemMap(
     },
     nasal_tippi='n',
     nasal_bindi='n',
-    subjoined={'੍ਰ': 'r', '੍ਵ': None, '੍ਹ': None, '੍ਤ': None, '੍ਯ': None},
+    subjoined={'੍ਰ': 'r', '੍ਵ': 'v', '੍ਹ': 'h', '੍ਤ': None, '੍ਯ': 'y'},
     notes=(
         'The pre-BaniDB SikhiToTheMax scheme, still served verbatim by '
         'igurbani.com (verified against its database July 2026: ਸਤਿਨਾਮੁ → '
         'sathnaam, ਏਕ → eaek, ਕੌਣੁ → kaan). Heavy use of doubled letters; '
         'n and ṇ are the same. ਛ → shh (unusual), ੌ → a (simplified). '
         'Independent vowels get glides: ਇ → ei, ਉ/ਓ → ou, ਏ → eae. '
-        'Also used by Gurbani Anywhere. The letter table is checked against '
-        'igurbani.com output (tests/fixtures/igurbani.tsv); its spelling rules '
-        'are not modelled yet (#48).'
+        'Also used by Gurbani Anywhere. Real output comes from igurbani.py, '
+        'which adds iGurbani\'s spelling rules (final ਿ/ੁ dropped, ਹ softens '
+        'the vowel before it, ਕਉ → ko) to this letter table; both are checked '
+        'against igurbani.com output (tests/fixtures/igurbani.tsv).'
     ),
 )
 
