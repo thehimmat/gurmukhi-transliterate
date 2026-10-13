@@ -50,37 +50,33 @@ def test_shabados_clean_room_close_match():
     assert word_hits / words >= 0.99
 
 
-def igurbani_words():
+def igurbani_rows():
     path = FIXTURE.parent / 'igurbani.tsv'
     with open(path, encoding='utf-8', newline='') as f:
         data = list(csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, escapechar='\\'))
     assert len(data) >= 1500
-    pairs = []
-    for x in data:
-        g, w = re.sub('[;,.]', '', x['gurmukhi']).split(), x['igurbani'].split()
-        if len(g) == len(w):
-            pairs += zip(g, w)
-    return pairs
+    return data
 
 
-IGURBANI_SPELLINGS = {
-    ('ਤਿਨਾ', 'thinhaa'), ('ਕੀਨੋ', 'keenho'),      # ੍ਹ in the transliteration only
-    ('ਬਾਂਚੇ', 'baachae'), ('ਊਂਚੌ', 'oonacha'),    # nasal dropped or vowel added
-}
+@pytest.mark.parametrize('part, line_floor', [('held-out', 0.93), ('all', 0.93)])
+def test_sttm_legacy_clean_room_close_match(part, line_floor):
+    """iGurbani's scheme is reimplemented from igurbani.com's output alone.
 
-
-def test_sttm_legacy_letters_match_igurbani():
-    """The letter table, on words iGurbani's spelling rules can't touch.
-
-    iGurbani drops final ਿ/ੁ, softens the vowel before ਹ, writes ਉ/ਇ after a
-    letter as o/e and keeps medial schwas; sttm_legacy doesn't model those
-    yet, so this checks only words ending in a long vowel with no ਹ, no
-    non-initial ਉ/ਇ and no ੍ਰਿ. The misses allowed are spellings in
-    iGurbani's database that its own Unicode text doesn't carry.
+    The rules were written looking only at shabads whose id is not a multiple
+    of 3; the rest are held out, so their score is the honest one (94.6% of
+    lines, 99.8% of words). What's left are spellings in iGurbani's database,
+    e.g. ਤਿਨ੍ਹ੍ਹਾ written both thinhaa and thinaa.
     """
     r = GurmukhiRomanizer('sttm_legacy')
-    words = [(g, w) for g, w in igurbani_words()
-             if g[-1] in 'ਾੀੂੇੈੋੌ' and 'ਹ' not in g and not re.search('.[ਉਇ]|੍ਰਿ|[੦-੯]', g)]
-    misses = [(g, w, r.romanize(g)) for g, w in words if r.romanize(g) != w]
-    assert len(words) >= 2000
-    assert {(g, w) for g, w, _ in misses} <= IGURBANI_SPELLINGS, misses
+    data = [x for x in igurbani_rows() if part == 'all' or int(x['shabad']) % 3 == 0]
+    lines = words = word_hits = 0
+    for x in data:
+        got, want = r.romanize(x['gurmukhi']), x['igurbani']
+        lines += got == want
+        g, w = got.split(), want.split()
+        if len(g) == len(w):
+            words += len(w)
+            word_hits += sum(a == b for a, b in zip(g, w))
+    assert len(data) >= 500
+    assert lines / len(data) >= line_floor
+    assert word_hits / words >= 0.99

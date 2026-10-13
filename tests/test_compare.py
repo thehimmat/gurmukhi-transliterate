@@ -119,6 +119,16 @@ class TestIdentifyLikelihood:
         first = sum(identify_system(t)[0]['system'] == 'shackle' for t in lines)
         assert first / len(lines) >= 0.95, f'top-1 {first}/{len(lines)}'
 
+    def test_igurbani_lines(self):
+        # real igurbani.com text, shabads held out from the sttm_legacy rules (#48)
+        import csv, pathlib
+        path = pathlib.Path(__file__).parent / 'fixtures' / 'igurbani.tsv'
+        with open(path, encoding='utf-8', newline='') as f:
+            rows = [x for x in csv.DictReader(f, delimiter='\t', quoting=csv.QUOTE_NONE, escapechar='\\')
+                    if int(x['shabad']) % 3 == 0]
+        first = sum(identify_system(x['igurbani'])[0]['system'] == 'sttm_legacy' for x in rows)
+        assert first / len(rows) >= 0.9, f'top-1 {first}/{len(rows)}'
+
     def test_identical_outputs_are_equivalent(self):
         from gurmukhi_transliterate import GurmukhiRomanizer, GurmukhiISO15919
         text = 'ਸਤਿਗੁਰ ਪ੍ਰਸਾਦਿ ਨਾਮੁ'

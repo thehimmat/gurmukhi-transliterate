@@ -18,6 +18,7 @@ from .systems import SYSTEMS, SystemMap
 from ._core import transliterate
 from .banidb import GurmukhiBaniDB
 from .shabados import GurmukhiShabadOS
+from .igurbani import GurmukhiIGurbani
 from .legacy import ConversionResult
 
 # Systems whose real-world output comes from a dedicated engine rather than the
@@ -27,6 +28,7 @@ _DEDICATED = {
     'sttm': GurmukhiBaniDB.to_english,
     'banidb_ipa': GurmukhiBaniDB.to_ipa,
     'shabados': GurmukhiShabadOS.to_english,
+    'sttm_legacy': GurmukhiIGurbani.to_english,
 }
 
 _logger = logging.getLogger('gurmukhi_transliterate._core')

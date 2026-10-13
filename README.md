@@ -152,10 +152,9 @@ sources are in that folder's README.
   clean-room reimplementation built only from that library's output, so it's
   close rather than exact: 96.9% of held-out lines and 99.5% of words match.
 - **`sttm_legacy`** is the older SikhiToTheMax scheme that iGurbani still serves.
-  Its letter table is checked against 1,683 lines from igurbani.com
-  (`tools/build_igurbani.py`). iGurbani's spelling rules (dropped final ਿ/ੁ, ਹ
-  softening the vowel before it, ਕਉ → ko) aren't modelled yet, so only about 60%
-  of words match exactly (#48).
+  No code for it is published, so it's a clean-room engine (`igurbani.py`) built
+  from 1,683 lines igurbani.com serves (`tools/build_igurbani.py`): 94.6% of
+  lines and 99.8% of words match on held-out shabads.
 - **Informal and 3HO spellings** (`Waheguru`, `Sat Sri Akal`, `Ek Ong Kaar`,
   `Japji Sahib`, `Khalsa`, …) are covered by a table of 96 common terms and their
   variants in `informal.py`. `reverse_words(..., system='informal')` uses it, and
