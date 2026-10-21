@@ -178,6 +178,21 @@ class TestGursevak:
         # DB: ਦੁਖ → d‹u›kh (d, not dh)
         assert rom('gursevak', 'ਦੁਖ') == 'dukha'
 
+    def test_half_letters_from_guide(self):
+        # DB: ਦ੍ਰਿਸ੍ਟਿ → d‹ᵣe›s‹ₜₜe›, ਇਸ੍ਨਾਨੁ → es‹ₙaa›n‹u›, ਅਸ੍ਚਰਜ → As‹ch›raj (#1)
+        assert rom('gursevak', 'ਦ੍ਰਿਸ੍ਟਿ') == 'dᵣesₜₜe'
+        assert rom('gursevak', 'ਇਸ੍ਨਾਨੁ') == 'esₙaanu'
+        assert rom('gursevak', 'ਅਸ੍ਚਰਜ') == 'ascharaja'
+
+    def test_half_letters_reverse(self):
+        from gurmukhi_transliterate.system_reverse import reverse_words
+        assert reverse_words('dᵣesₜₜe esₙaanu', system='gursevak').gurmukhi == 'ਦ੍ਰਿਸ੍ਟਿ ਇਸ੍ਨਾਨੁ'
+
+    def test_lla_unmapped(self):
+        # absent from the corpus; the guide's 'll' is not adopted (see notes, #1)
+        assert SYSTEMS['gursevak'].consonants['ਲ਼'] is None
+        assert 'ਲ਼' in SYSTEMS['gursevak'].notes and "'ll'" in SYSTEMS['gursevak'].notes
+
 
 # ---------------------------------------------------------------------------
 # Guru Fatha Singh

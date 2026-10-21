@@ -435,7 +435,9 @@ GURSEVAK = SystemMap(
     },
     nasal_tippi='ⁿ',
     nasal_bindi='ⁿ',
-    subjoined={'੍ਰ': 'ᵣ', '੍ਵ': 'ᵤ', '੍ਹ': 'ₕ', '੍ਤ': 'ₜ', '੍ਯ': 'ₑ'},
+    subjoined={'੍ਰ': 'ᵣ', '੍ਵ': 'ᵤ', '੍ਹ': 'ₕ', '੍ਤ': 'ₜ', '੍ਯ': 'ₑ',
+               # in the app's guide and the data (ਅਸ੍ਚਰਜ → asch, ਦ੍ਰਿਸ੍ਟਿ → dᵣesₜₜe, ਇਸ੍ਨਾਨੁ → esₙaanu)
+               '੍ਚ': 'ch', '੍ਟ': 'ₜₜ', '੍ਨ': 'ₙ'},
     notes=(
         'Learn Shudh Gurbani app scheme, extracted from the bundled '
         'Gursevak.sqlite of app v3.01 (June 2026): ~143k verses across SGGS, '
@@ -447,7 +449,15 @@ GURSEVAK = SystemMap(
         'consonant (ਚੱਕ੍ਰ → chaKᵣa) — engine doubles instead. The source '
         'wraps vowels in ‹› for the app\'s colour-coding (stripped here) and '
         'hyphenates adjacent vowels (ਚਲਾਏ → chalaa-ay). Silent final sihari '
-        'is dropped in-data (ਮੂਰਤਿ → moorat). ਲ਼ absent from corpus.'
+        'is dropped in-data (ਮੂਰਤਿ → moorat). '
+        'The in-app Transliteration Guide differs from the data in places; the '
+        'map follows the data: ਗ਼ gg and ਫ਼ f in the guide (data: gh, ph), ਉ ou '
+        '(data: u), ੍ਵ subscript v (data: ᵤ), ੍ਯ full-size Y (data: ₑ in SGGS, '
+        'plain y in Dasam Granth). The guide\'s ou is the older data layer: '
+        'about 2.7k words still have au/ou with ਦ → dh (ਉਦੰਡਣ → audhaⁿddan). '
+        'ਲ਼ is absent from the corpus and left unmapped (falls back to l); the '
+        'guide gives \'ll\', so an ll in Gursevak text may stand for ਲ਼ rather '
+        'than ਲੱਲ.'
     ),
 )
 
