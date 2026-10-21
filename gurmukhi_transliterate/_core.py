@@ -29,12 +29,13 @@ nukta letter falls back to its base letter, anything else to its ISO 15919
 value, and a missing bindi to the system's tippi value. Each fallback is
 recorded as a ConversionWarning (see GurmukhiRomanizer.romanize_report).
 After a virama, the system's ``subjoined`` form is used when it defines one.
+Yakash (ੵ) is read as virama + ਯ, so it takes the subjoined ਯ form.
 """
 
 from __future__ import annotations
 from .systems import NASAL_CLASSES, SystemMap
 from .schwa import compute_deletions
-from ._tokens import TIPPI, VIRAMA, normalize, tokenize
+from ._tokens import TIPPI, VIRAMA, YAKASH, normalize, tokenize
 from .iso15919 import GurmukhiISO15919
 from .legacy import ConversionWarning
 
@@ -73,7 +74,8 @@ def transliterate(
     vw = system.vowels
     inherent = vw.get('ਅ', 'a') or 'a'
 
-    text = normalize(text)
+    # warning positions index this text, where each yakash is two characters
+    text = normalize(text).replace(YAKASH, VIRAMA + 'ਯ')
     deletions: set[int] = (
         compute_deletions(text, set(cons.keys()), set(vd.keys()))
         if delete_schwa
