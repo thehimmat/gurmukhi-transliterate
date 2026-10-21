@@ -387,6 +387,21 @@ class TestAddakAndNasalsAnywhere:
         assert rom('dr_thind', 'ਕੱ') == 'ka'
 
 
+class TestYakash:
+    """Yakash (ੵ) is a subjoined ਯ written as a mark: read it as ੍ਯ."""
+
+    @pytest.mark.parametrize('sid', MAP_DRIVEN)
+    def test_reads_as_subjoined_ya(self, sid):
+        assert rom(sid, 'ਬਿਗੵਾਪ੍ਤਿ') == rom(sid, 'ਬਿਗ੍ਯਾਪ੍ਤਿ')
+
+    @pytest.mark.parametrize('sid, expected', [
+        ('dr_sant_singh', 'bigyaapti'),
+        ('iast', 'bigyāpti'),
+    ])
+    def test_ya_is_written(self, sid, expected):
+        assert rom(sid, 'ਬਿਗੵਾਪ੍ਤਿ') == expected
+
+
 # --- #22: no silent drops; subjoined forms ----------------------------------
 
 class TestFallbacks:

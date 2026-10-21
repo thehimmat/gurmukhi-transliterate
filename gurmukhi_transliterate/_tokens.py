@@ -24,6 +24,7 @@ from dataclasses import dataclass
 NUKTA = '਼'
 ADDAK = 'ੱ'
 VIRAMA = '੍'
+YAKASH = 'ੵ'    # a subjoined ਯ written as a mark
 TIPPI = 'ੰ'
 BINDI = 'ਂ'
 
