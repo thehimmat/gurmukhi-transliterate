@@ -25,4 +25,4 @@ on these pages of the PDF (the viewer's page number, not the printed one):
 | file | line → PDF page |
 |---|---|
 | `gur_sobha.asees.txt` | 1→46, 2→70, 3→106, 4→124, 5→146, 6→172, 7→196, 8→224, 9→246, 10→264, 11→292, 12→314, 13→348, 14→378, 15→400 |
-| `gur_sobha_joy.joy.txt` | 1–2→38, 3–4→39, 5–6→40, 7–9→41, 10–12→42 |
+| `gur_sobha_joy.joy.txt` | 1–2→38, 3–4→39, 5–6→40, 7–9→41, 10–12→42, 13–14→38 (checked against the page image: the `A` key is the nasal) |
