@@ -4,7 +4,7 @@ Legacy encoding conversion system for Gurmukhi script.
 Handles conversion from:
 - Font-based encodings (``ENCODINGS``): the phonetic AnmolLipi/GurbaniAkhar,
   AnandpurSahib and SONY layouts, the typewriter layout of Asees and Joy, and
-  Satluj (letters on Latin-1 keys)
+  Satluj and Sarover (letters on Latin-1 keys)
 - Keyboard mappings (ASCII-based input)
 to Unicode Gurmukhi.
 
@@ -610,7 +610,7 @@ LAYOUTS = {
         passthrough=frozenset(' \t\r\n0123456789,.()-'), fonts=('anandpursahib',)),
     'satluj': Layout(
         'satluj', 'Satluj', keys=SATLUJ_KEYS, combos={}, sihari=frozenset('Ç'),
-        passthrough=frozenset(' \t\r\n,.()-/:'), fonts=('satluj',), mac_roman_repair=True),
+        passthrough=frozenset(' \t\r\n,.()-/:'), fonts=('satluj', 'sarover'), mac_roman_repair=True),
     'sony': Layout(
         'sony', 'SONY', keys=SONY_KEYS, combos={}, sihari=frozenset('d'),
         passthrough=frozenset(' \t\r\n()-!'), fonts=('sony',), join_dandas=True),

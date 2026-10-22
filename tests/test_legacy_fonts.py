@@ -153,10 +153,15 @@ class TestEncodingChoice:
         ('SONYBoldA', 'sony'), ('SONY-NormalItalicA', 'sony'), ('LORD-BoldA', 'anmollipi'),
         ('GOD-BoldA', 'anmollipi'), ('GurbaniWebThick', 'anmollipi'),
         ('CKPPLH+GurbaniLipi', 'anmollipi'), ('AnmolLipi Bold', 'anmollipi'), ('Prabhki', 'anmollipi'),
+        ('XKWQZB+Sarover', 'satluj'),
         ('MSTT31c5cb', None), ('TimesNewRoman', None),
     ])
     def test_encoding_for_font(self, font, encoding):
         assert GurmukhiLegacy.encoding_for_font(font) == encoding
+
+    def test_sarover_is_typed_on_the_satluj_layout(self):
+        # the Nangali Nitnem gutka sets its title in Sarover beside Satluj body text
+        assert GurmukhiLegacy.to_unicode('«ÈÂÈ∂Ó', GurmukhiLegacy.encoding_for_font('Sarover')) == 'ਨਿਤਨੇਮ'
 
     def test_report_with_font_hint(self):
         report = conversion_report('uzvh', font='Asees')
