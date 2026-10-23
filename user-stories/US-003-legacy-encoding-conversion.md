@@ -17,7 +17,7 @@ As someone with old documents, I want legacy ASCII/font Gurmukhi converted to Un
 ## Acceptance criteria
 
 - Converts legacy ASCII/font Gurmukhi encodings to Unicode.
-- Supports the common font layouts: GurbaniAkhar/AnmolLipi family, Asees, Joy, AnandpurSahib, Satluj, SONY.
+- Supports the common font layouts: GurbaniAkhar/AnmolLipi family, Asees, Joy, AnandpurSahib, Satluj (and Sarover, which shares its layout), SONY.
 - Detects the likely layout from the text (lexicon-based), and accepts a font-name hint.
 - Leaves English and romanized lines in the same document untouched.
 
