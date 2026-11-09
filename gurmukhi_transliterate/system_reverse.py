@@ -149,6 +149,7 @@ def _candidate_systems(text: str) -> list[str]:
     every system it can't tell apart from the best."""
     from .compare import identify_system
     ranked = identify_system(text, top_n=len(ALL_SYSTEMS))
+    ranked = [r for r in ranked if r['system'] in ALL_SYSTEMS]   # not a legacy font's entry
     return [r['system'] for i, r in enumerate(ranked) if i < _TRY or r['equivalent']]
 
 

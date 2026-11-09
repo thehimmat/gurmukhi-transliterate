@@ -93,8 +93,12 @@ logged. A few conventions come from checking real PDFs against their rendered pa
 AnmolLipi's `@` (pairin haha drawn under the letter) becomes `ੑ`, as in Shabad OS and
 BaniDB (`ਤੁਮੑਾਰੀ`); two keys typists overlay to draw one sign (`ੁ`+`ੂ`, a doubled bindi)
 become that one sign; and Satluj text from a PDF made on a Mac, whose text layer reads the
-font's bytes as Mac Roman (`√` for `Ã`), is read back as Windows-1252 first. Use `convert`
-to get the warnings as data:
+font's bytes as Mac Roman (`√` for `Ã`), is read back as Windows-1252 first. Text copied
+out of a PDF on a Mac arrives compatibility-normalised, with some keys split into other
+characters (Satluj's `¨` as a space and a combining diaeresis, `¼` as `1⁄4`, `¹` as `1`):
+those keys are put back before converting. A `1` counts as `¹` only straight after a
+letter or sign, and only in text where no such key survived unsplit, so verse numbers
+stay numbers. Use `convert` to get the warnings as data:
 
 ```python
 GurmukhiLegacy.to_unicode('ikæsmq')                  # 'ਕ਼ਿਸਮਤ' (consonant, nukta, sihari)
@@ -214,7 +218,8 @@ about a second.
 
 `detect_latin` tells English from romanized Gurmukhi, line by line and word by
 word. `identify_system` ranks the romanization systems that could have written
-a line. Both score words with character-trigram models: one per system, trained
+a line; text typed in a legacy font is not romanization, and gets a single
+`legacy:<encoding>` entry naming the font instead. Both score words with character-trigram models: one per system, trained
 on its romanization of the bundled lexicon, and one for English, trained on
 SCOWL.
 

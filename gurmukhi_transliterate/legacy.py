@@ -20,7 +20,7 @@ allowing them to work with both Unicode and legacy input formats.
 import logging
 import re
 import unicodedata
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from functools import lru_cache
 
 from ._legacy_layouts import ANANDPUR_KEYS, ASEES_KEYS, JOY_COMBOS, JOY_KEYS, SATLUJ_KEYS, SONY_KEYS
@@ -96,6 +96,97 @@ def _mac_roman_to_windows(line: str) -> str:
         except UnicodeDecodeError:   # bytes cp1252 leaves undefined
             out.append(b.decode('latin-1'))
     return ''.join(out)
+
+
+# Text copied out of a PDF on a Mac arrives compatibility-normalised (NFKC),
+# which rewrites some font keys as other characters: Satluj's '¨' (॥) becomes
+# a space and a combining diaeresis, '¼' (ੱ) becomes '1⁄4', '¹' (ੁ) becomes '1'.
+_LETTERS = frozenset(map(chr, (*range(0x0A05, 0x0A3A), *range(0x0A59, 0x0A5F), 0x0A72, 0x0A73)))
+_VOWEL_SIGNS = frozenset(map(chr, range(0x0A3E, 0x0A4D)))
+_NASALS = frozenset('ੰਂੱ')
+
+
+@lru_cache(maxsize=None)
+def _split_keys(encoding: str) -> tuple[tuple, dict, frozenset]:
+    """The keys of a layout that NFKC rewrites, as ``(forms, shared, splittable)``.
+
+    *forms* pairs each rewritten form that can only be that key with the key,
+    longest first. *shared* holds the forms that are also a key or literal
+    text of their own (the digit '1' is both ੧ and what is left of '¹'):
+    those are told apart by what they follow, and only in text where none of
+    the *splittable* keys survives.
+    """
+    layout = LAYOUTS[encoding]
+    forms, shared, splittable = {}, {}, set()
+    for key, out in layout.keys.items():
+        form = unicodedata.normalize('NFKC', key)
+        if len(key) != 1 or form == key or layout.keys.get(form) == out:
+            continue
+        splittable.add(key)
+        if all(c in layout.keys or c in layout.passthrough for c in form):
+            # the form is text the layout can already read ('…' becomes '...')
+            if len(form) == 1 and (not out or out[0] in _VOWEL_SIGNS or out[0] in _NASALS):
+                shared.setdefault(form, key)
+        else:
+            forms.setdefault(form, key)
+    if layout.mac_roman_repair:   # the same keys as a Mac Roman reading shows them
+        for key in layout.keys:
+            if len(key) == 1 and ord(key) < 0x100:
+                shown = bytes([ord(key)]).decode('mac_roman')
+                form = unicodedata.normalize('NFKC', shown)
+                if form != shown and not all(c in layout.keys or c in layout.passthrough for c in form):
+                    forms.setdefault(form, shown)
+    return tuple(sorted(forms.items(), key=lambda kv: -len(kv[0]))), shared, frozenset(splittable)
+
+
+def _rejoin_split_keys(text: str, layout: Layout) -> tuple[str, list[int] | None]:
+    """Put back the font keys that NFKC split, in *text* typed in *layout*.
+
+    Returns the repaired text and, when anything changed, the input position
+    each of its characters came from.
+    """
+    forms, shared, splittable = _split_keys(layout.name)
+    if any(key in text for key in splittable):
+        shared = {}    # a key NFKC would have split is intact: the text is as typed
+    if not any(form in text for form, _ in forms) and not any(form in text for form in shared):
+        return text, None
+    out, origin = [], []
+    i = 0
+    while i < len(text):
+        for form, key in forms:
+            if text.startswith(form, i):
+                break
+        else:
+            form, key = text[i], text[i]
+            if form in shared and out:
+                # what is left of a sign follows the letter or sign it was typed
+                # after; a number follows a space or a danda, or has a digit
+                # no sign leaves behind ('10', not '31' from '³¹')
+                before = (layout.keys.get(out[-1]) or ' ')[-1]
+                j = i
+                while j < len(text) and text[j] in shared:
+                    j += 1
+                number = text[j:j + 1].isdigit()
+                if not number and (before in _LETTERS or before in _VOWEL_SIGNS
+                                   or before in _NASALS or before in _JOINS):
+                    key = shared[form]
+        out.append(key)
+        origin.append(i)
+        i += len(form)
+    if len(out) == len(text) and ''.join(out) == text:
+        return text, None
+    return ''.join(out), origin
+
+
+def _as_typed(text: str, layout: Layout) -> tuple[str, list[int] | None]:
+    """Undo what a PDF or clipboard did to *text* on its way out of the font:
+    NFKC-split keys, and a Mac Roman reading of the font's bytes. Returns the
+    text and, if its length changed, each character's position in the input."""
+    text, origin = _rejoin_split_keys(text, layout)
+    if layout.mac_roman_repair and any(c in _MAC_ONLY for c in text):
+        text = '\n'.join(_mac_roman_to_windows(line) if any(c in _MAC_ONLY for c in line) else line
+                          for line in text.split('\n'))
+    return text, origin
 
 
 class GurmukhiLegacy:
@@ -314,14 +405,17 @@ class GurmukhiLegacy:
 
         Line structure is preserved exactly, and no input character is dropped:
         unmapped characters pass through and are reported in ``warnings``.
+
+        Font keys that a Mac's clipboard split into other characters (``¨`` into
+        a space and a combining diaeresis, ``¼`` into ``1⁄4``, ``¹`` into ``1``)
+        are put back first; the space such a split added is the only input
+        character not carried over.
         """
         if encoding.lower() == 'auto':
             guess = cls._guess(text).label
             encoding = guess if guess in LAYOUTS else 'anmollipi'
         layout = cls.layout(encoding)
-        if layout.mac_roman_repair and any(c in _MAC_ONLY for c in text):
-            text = '\n'.join(_mac_roman_to_windows(line) if any(c in _MAC_ONLY for c in line) else line
-                              for line in text.split('\n'))
+        text, origin = _as_typed(text, layout)
         sihari = 'ਿ'
         chars = []
         warnings = []
@@ -423,6 +517,8 @@ class GurmukhiLegacy:
             out = _BINDI_AFTER.sub('ਂ', out)
         if layout.join_dandas:
             out = out.replace('।।', '॥')
+        if origin is not None:
+            warnings = [replace(w, position=origin[w.position]) for w in warnings]
         return ConversionResult(unicodedata.normalize('NFC', out), warnings, layout.name)
 
     @classmethod
@@ -467,6 +563,31 @@ class GurmukhiLegacy:
                 return False
         return True
 
+    # Share of a text's letters that must be a layout's accented-letter keys to
+    # know the layout by them
+    LETTERS_THRESHOLD = 0.8
+
+    @classmethod
+    def _by_letters(cls, text: str) -> EncodingGuess | None:
+        """The layout whose non-ASCII letter keys *text* is written in, if any.
+
+        Satluj types Gurmukhi on the accented letters of Latin-1. A language
+        that uses those letters mixes them into ASCII words; text made of them
+        almost alone is the font, however short it is and whether or not its
+        words are in the lexicon.
+        """
+        best = None
+        for name in _ACCENTED_LAYOUTS:
+            layout = LAYOUTS[name]
+            typed, _ = _as_typed(text, layout)
+            letters = [c for c in typed if c.isalpha()]
+            keyed = sum(1 for c in letters if not c.isascii() and c in layout.keys)
+            if keyed < 2 or keyed < cls.LETTERS_THRESHOLD * len(letters):
+                continue
+            if best is None or keyed / len(letters) > best.score:
+                best = EncodingGuess(name, keyed / len(letters))
+        return best
+
     @classmethod
     def _guess(cls, text: str) -> EncodingGuess:
         legacy_keys = (set(cls.ANMOLLIPI_MAP) | set(cls.SUBJOINED_MAP)
@@ -477,6 +598,9 @@ class GurmukhiLegacy:
         if gurmukhi and gurmukhi >= latin:
             letters = gurmukhi + sum(1 for c in text if c.isalpha() and c.isascii())
             return EncodingGuess('unicode', gurmukhi / max(letters, gurmukhi))
+        by_letters = cls._by_letters(text)
+        if by_letters is not None:
+            return by_letters
 
         plausible = total = 0
         for raw in text.split():
@@ -565,8 +689,10 @@ class GurmukhiLegacy:
         means Latin-script text that isn't legacy Gurmukhi: English, or
         romanised Gurmukhi (see ``detect_latin`` for telling those apart).
 
-        The other layouts are recognised by converting the text and looking
-        the words up in the Gurbani lexicon. Asees and Joy share their
+        Satluj is recognised by its letters: they sit on accented Latin-1
+        keys that no language writes whole words in. The other layouts are
+        recognised by converting the text and looking the words up in the
+        Gurbani lexicon. Asees and Joy share their
         letter keys, so text without their few differing keys reads as 'asees'. AnmolLipi is
         recognised structurally: ASCII words are checked against its spelling
         rules. A short line made only of words that are also valid AnmolLipi
@@ -574,6 +700,22 @@ class GurmukhiLegacy:
         the font is known, ``encoding_for_font`` is more reliable.
         """
         return cls._guess(text).label
+
+    @classmethod
+    def legacy_font_guess(cls, text: str) -> EncodingGuess | None:
+        """The legacy layout *text* is typed in, when its words confirm it.
+
+        Stricter than ``detect_encoding``: AnmolLipi is otherwise recognised by
+        spelling structure alone, which a few romanised words can satisfy
+        ('so is it'), so here its converted words must be Gurbani vocabulary.
+        Returns None for anything else.
+        """
+        guess = cls._guess(text)
+        if guess.label not in LAYOUTS:
+            return None
+        if guess.label == 'anmollipi' and cls._lexicon_share(text, 'anmollipi') < cls.LEXICON_THRESHOLD:
+            return None
+        return guess
 
     @classmethod
     def detect_lines(cls, text: str) -> list[EncodingGuess]:
@@ -618,6 +760,12 @@ LAYOUTS = {
 ENCODINGS = tuple(LAYOUTS)
 # Encodings recognised by converting and looking words up in the lexicon
 LEXICON_DETECTED = ('asees', 'joy', 'anandpursahib', 'satluj', 'sony')
+# Layouts that keep most of their consonants on non-ASCII keys: recognised by
+# those letters alone
+_ACCENTED_LAYOUTS = tuple(
+    name for name, layout in LAYOUTS.items()
+    if 2 * sum(not k.isascii() for k, v in layout.keys.items() if v[:1] in _LETTERS)
+    > sum(v[:1] in _LETTERS for v in layout.keys.values()))
 
 
 def conversion_report(text: str, encoding: str | None = None, font: str | None = None) -> dict:
