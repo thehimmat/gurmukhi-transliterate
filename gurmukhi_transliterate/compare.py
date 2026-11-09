@@ -94,12 +94,24 @@ def identify_system(
     Sat Sri Akal, …), ``'informal'`` is ranked first. With
     ``include_english=True``, ``'english'`` is ranked alongside the systems.
 
+    Text typed in a legacy Gurmukhi font (Satluj, AnmolLipi, …) is not
+    romanization: it gets a single ``'legacy:<encoding>'`` entry naming the font.
+
     Returns:
         List of dicts ``{system, label, confidence, equivalent}``, sorted by
         confidence descending.
     """
     from .informal import reverse_informal
     from .language import latin_words, word_scores
+    from .legacy import LAYOUTS, GurmukhiLegacy
+
+    # Legacy-font text is not romanization at all: name the font instead of
+    # ranking systems that happen to share a few of its letters.
+    font = GurmukhiLegacy.legacy_font_guess(romanized)
+    if font is not None:
+        return [{'system': f'legacy:{font.label}',
+                 'label': f'{LAYOUTS[font.label].label} legacy font',
+                 'confidence': round(font.score, 3), 'equivalent': False}]
 
     words = latin_words(romanized)
     if not words:
